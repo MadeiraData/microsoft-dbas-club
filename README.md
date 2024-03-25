@@ -1,8 +1,8 @@
 [![Welcome - We are Madeira Data Solutions](banner_1024.png)](https://www.madeiradata.com)
 
-# Madeira Toolbox
+# Microsoft DBAs Club
 
-This is the official Toolbox repository for Madeira's consultant team, for "as-is" solutions and tools/scripts that the team publishes.
+This is the official toolbox repository for Madeira's DBA consultant team, for "as-is" solutions and tools/scripts that the team publishes.
 
 Please visit our official website at:
 
