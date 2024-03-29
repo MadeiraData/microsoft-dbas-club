@@ -17,4 +17,4 @@ For more community resources, visit our official community web pages:
 
 ## License
 
-All Madeira Toolbox materials in this repository are released under the [MIT license](https://github.com/MadeiraData/microsoft-dbas-club/blob/master/LICENSE).
+All materials in this repository are released under the [MIT license](https://github.com/MadeiraData/microsoft-dbas-club/blob/master/LICENSE).
