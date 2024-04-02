@@ -5,7 +5,7 @@ Description:	This script shows the source of each connection. By uncommenting th
 				Code inspired from this post:
 				https://social.msdn.microsoft.com/Forums/sqlserver/en-US/59db3794-0346-4a8d-97f3-741fcac47a26/determine-sql-agent-job-name-from-spid?forum=transactsql
 Scope:			Instance
-Author:			Sagiu Amichai, Madeira
+Author:			Sagi Amichai, Madeira
 Created:		08/02/2021
 Last Updated:	08/02/2021
 Notes:			Replace the local variable values with your choices

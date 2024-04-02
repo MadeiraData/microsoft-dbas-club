@@ -1,1 +1,0 @@
-Copy the files to `c:\users\<YourUserName>\Documents\SQL Server Management Studio\Code Snippets\SQL\My Code Snippets`
