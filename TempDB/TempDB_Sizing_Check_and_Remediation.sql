@@ -114,6 +114,7 @@ AND
 OR current_growth_MB <> @FileGrowthMB
 OR current_size_MB <> InitSizeMBPerFile
 OR current_maxsize_MB <> MaxSizeMBPerFile
+OR @ForceShrink = 1
 )
 
 -- If SQL version lower than 2016:
