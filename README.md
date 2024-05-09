@@ -1,4 +1,4 @@
-[![Welcome - We are Madeira Data Solutions](banner.png)](https://www.madeiradata.com)
+[![Welcome - We are Madeira Data Solutions](Join the community!.png)](https://www.madeiradata.com)
 
 # Microsoft DBAs Club
 
