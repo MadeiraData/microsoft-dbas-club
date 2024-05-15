@@ -41,7 +41,7 @@ DECLARE
 									PARAMETERS
 **********************  !!! DO NOT EDIT ANYTHING ABOVE THIS LINE !!!  ************************/
 
-	 @SourceTableName					SYSNAME		= 'dbo.OnlineIndexTest'
+	 @SourceTableName					SYSNAME		= 'dbo.SourceTableToRebuild'
 	,@ChunkIntervalForSingleColumnPK	INT			= 1000
 	,@OperationDeltaColumn				SYSNAME		= '___Operation'	-- must be different from any existing table columns
 	,@PrecedenceDeltaColumn				SYSNAME		= '___Precedence'	-- must be different from any existing table columns
@@ -417,7 +417,7 @@ SET @CMD = N'
 	SELECT @CMD = @CMD + N'
 	ALTER TABLE ' + @NewTableName + N' ADD CONSTRAINT ' + QUOTENAME(pk.name + @NewTableNamePostfix) COLLATE database_default
 	,
-	@RenameCommands = @RenameCommands + N'
+	@RenameCommands = ISNULL(@RenameCommands, N'') + N'
 EXEC sp_rename N''' +  pk.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + pk.name COLLATE database_default + N''';'
 
 	FROM sys.indexes AS pk
@@ -434,7 +434,7 @@ EXEC sp_rename N''' +  pk.name COLLATE database_default + @NewTableNamePostfix +
 
 	ALTER TABLE ' + @NewTableName + N' ADD CONSTRAINT ' + QUOTENAME(df.name + @NewTableNamePostfix) COLLATE database_default + N' DEFAULT ' + df.definition COLLATE database_default + N' FOR ' + QUOTENAME(c.name) COLLATE database_default + N';'
 	,
-	@RenameCommands = @RenameCommands + N'
+	@RenameCommands = ISNULL(@RenameCommands, N'') + N'
 EXEC sp_rename N''' +  df.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + df.name COLLATE database_default + N''';'
 	FROM sys.default_constraints AS df
 	INNER JOIN sys.columns AS c
@@ -1132,7 +1132,7 @@ RAISERROR(N''Done. You can now drop the tables ' + @DeltaTableName + N' and ' + 
 DROP TABLE ' + @DeltaTableName + N';
 DROP TABLE ' + @OldTableName + N';
 GO
-' + @RenameCommands + N'
+' + ISNULL(@RenameCommands, N'') + N'
 */
 GO
 '
