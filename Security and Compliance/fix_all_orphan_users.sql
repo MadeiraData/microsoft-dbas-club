@@ -1,7 +1,7 @@
 /*
 Author: Eitan Blumin | https://eitanblumin.com | https://madeiradata.com
 Date Created: 2018-01-02
-Last Update: 2023-06-18
+Last Update: 2024-05-23
 Description:
 	Fix All Orphaned Users Within Current Database, or all databases in the instance.
 	Handles 3 possible use-cases:
@@ -15,6 +15,7 @@ Remarks:
 	- The script tries to detect automatically whether a user is a member of a Windows Group.
 	- The script automatically detects whether the user owns schemas and objects, and generates remediation commands accordingly.
 		See parameters @DropEmptyOwnedSchemas and @DropOwnedObjects for more details.
+	- The script automatically ignores orphaned users that have SQL modules with EXECUTE AS for the user.
 
 More info: https://eitanblumin.com/2018/10/31/t-sql-script-to-fix-orphaned-db-users-easily/
 */
@@ -79,7 +80,9 @@ FROM sys.database_principals AS dp
 LEFT JOIN sys.server_principals AS sp ON dp.SID = sp.SID 
 WHERE sp.SID IS NULL 
 AND dp.type IN (''S'',''U'',''G'') AND dp.sid > 0x01
-AND dp.authentication_type <> 0;'
+AND dp.authentication_type <> 0
+AND NOT EXISTS (SELECT NULL FROM sys.sql_modules AS m WHERE m.execute_as_principal_id = dp.principal_id)
+;'
 
 -- Find the actual name of the "sa" login (in case it was renamed)
 SET @saName = SUSER_NAME(0x01);
