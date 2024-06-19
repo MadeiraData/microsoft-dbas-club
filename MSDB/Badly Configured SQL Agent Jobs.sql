@@ -19,6 +19,7 @@ SELECT
 , job_owner = SUSER_SNAME(j.owner_sid)
 , j.description
 , category_name = cat.name
+, is_owner_sysadmin = IS_SRVROLEMEMBER('sysadmin', SUSER_SNAME(j.owner_sid))
 , counts.targetservers_count
 , counts.steps_count
 , counts.schedules_count
@@ -55,6 +56,10 @@ CROSS APPLY
 	SELECT Issue = N'No valid owner'
 	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + SUSER_SNAME(0x01) + N';'
 	WHERE SUSER_SNAME(j.owner_sid) IS NULL
+	UNION ALL
+	SELECT Issue = N'Owner not sa'
+	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + SUSER_SNAME(0x01) + N';'
+	WHERE j.owner_sid <> 0x01
 ) AS issues
 WHERE j.date_created < DATEADD(MINUTE, -15, GETDATE()) -- allow grace period for newly created jobs
 ORDER BY j.name
