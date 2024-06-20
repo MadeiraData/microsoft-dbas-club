@@ -25,8 +25,7 @@ SELECT
 					ISNULL(ios.leaf_delete_count,0) + 
 					ISNULL(ios.leaf_insert_count,0) + 
 					ISNULL(ios.leaf_page_merge_count,0) + 
-					ISNULL(ios.leaf_update_count,0) + 
-					ISNULL(ios.singleton_lookup_count,0)
+					ISNULL(ios.leaf_update_count,0)
 				), 0) * 100.0), 0)
 	, updates_percent = ISNULL(
 				CEILING(SUM(ISNULL(ios.leaf_update_count, 0)) * 1.0 /
@@ -35,8 +34,7 @@ SELECT
 					ISNULL(ios.leaf_delete_count,0) + 
 					ISNULL(ios.leaf_insert_count,0) + 
 					ISNULL(ios.leaf_page_merge_count,0) + 
-					ISNULL(ios.leaf_update_count,0) + 
-					ISNULL(ios.singleton_lookup_count,0)
+					ISNULL(ios.leaf_update_count,0)
 				), 0) * 100.0), 0)
 	, size_MB = CEILING(SUM(ISNULL(sps.in_row_data_page_count,0) + ISNULL(sps.row_overflow_used_page_count,0) + ISNULL(sps.lob_reserved_page_count,0)) / 128.0)
 	, in_row_percent = ISNULL(
