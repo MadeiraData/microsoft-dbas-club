@@ -40,7 +40,34 @@ BackupFolderPath		Folder path where the certificates and keys should be backed u
 :setvar MasterKeyPassword database_master_key_password_here
 :setvar CertificateBackupPassword backup_certificate_password_here
 :setvar BackupFolderPath c:\backup_encryption\
+:setvar IsSqlCMDOn yes
+GO
+SET NOEXEC OFF
+GO
+IF '$(IsSqlCMDOn)' <> 'yes'
+BEGIN
+	RAISERROR(N'
+=========================================================================================================================
 
+This script must be run in SQLCMD mode!
+
+For more details please refer to:
+https://learn.microsoft.com/sql/tools/sqlcmd/edit-sqlcmd-scripts-query-editor#enable-sqlcmd-scripting-in-query-editor
+
+
+You may ignore all other errors.
+
+=========================================================================================================================
+',16,1);
+	SET NOEXEC ON;
+END
+GO
+IF IS_SRVROLEMEMBER('sysadmin') = 0
+BEGIN
+	RAISERROR(N'Login must have sysadmin permissions to run this script!',16,1);
+	SET NOEXEC ON;
+END
+GO
 USE [master]
 GO
 DECLARE @Today VARCHAR(10), @MasterKeyFromDate VARCHAR(10), @CertificateFromDate VARCHAR(10), @PKeyFromDate VARCHAR(10)

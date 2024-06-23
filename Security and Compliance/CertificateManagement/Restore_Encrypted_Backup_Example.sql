@@ -1,3 +1,6 @@
+/*
+This is an example script for restoring an encrypted database backup.
+*/
 :setvar MasterKeyPassword paste_password_here
 USE [master]
 GO

@@ -2,7 +2,25 @@
 :setvar DatabaseName TestDB
 :setvar IsSqlCMDOn yes
 GO
-SET NOEXEC OFF
+SET NOEXEC, ARITHABORT, XACT_ABORT OFF
+GO
+IF '$(IsSqlCMDOn)' <> 'yes'
+BEGIN
+	RAISERROR(N'
+=========================================================================================================================
+
+This script must be run in SQLCMD mode!
+
+For more details please refer to:
+https://learn.microsoft.com/sql/tools/sqlcmd/edit-sqlcmd-scripts-query-editor#enable-sqlcmd-scripting-in-query-editor
+
+
+You may ignore all other errors.
+
+=========================================================================================================================
+',16,1);
+	SET NOEXEC ON;
+END
 GO
 IF IS_SRVROLEMEMBER('sysadmin') = 0
 BEGIN
@@ -10,9 +28,9 @@ BEGIN
 	SET NOEXEC ON;
 END
 GO
-IF '$(IsSqlCMDOn)' <> 'yes'
+IF SERVERPROPERTY('ProductMajorVersion') < 15 AND SERVERPROPERTY('EngineEdition') IN (1,2,4)
 BEGIN
-	RAISERROR(N'This script must be run in SQLCMD mode!',16,1);
+	RAISERROR(N'TDE is not supported on the current SQL Server version and edition! TDE is only supported on Enterprise Editions, or SQL Server 2019 Standard Edition and newer.',16,1);
 	SET NOEXEC ON;
 END
 GO
