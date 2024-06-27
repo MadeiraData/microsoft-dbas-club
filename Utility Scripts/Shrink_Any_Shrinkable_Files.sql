@@ -15,7 +15,7 @@ https://www.mssqltips.com/sqlservertip/1510/script-to-determine-free-space-to-su
 
 Once you have identified the relevant files, you may, if needed, refer to this script 
 for shrinking the file/s in specified increments:
-https://github.com/MadeiraData/MadeiraToolbox/blob/413aa127f44ccd9b79636a3fd93cfeef66fae68c/Utility%20Scripts/Shrink_Database_File_in_Specified_Increments.sql
+https://github.com/MadeiraData/microsoft-dbas-club/blob/master/Utility%20Scripts/Shrink_Database_File_in_Specified_Increments.sql
 */
 
 
@@ -25,9 +25,11 @@ GO
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 --======ADJUST VALUES FOR THE 3 FOLLOWING VARIABLES======
-DECLARE @Drive NCHAR(1) = 'C' -- replace this valus with the relevant Disk (e.g. 'G' or 'L'...)
-DECLARE @MinimumPercentOfFreeSpace INT = 50 -- replace this value with the relevant % of free space you are looking for
-DECLARE @FileType NCHAR(4) = 'LOG' -- replace with the file type you need: LOG or ROWS (data)
+
+DECLARE @MinimumPercentOfFreeSpace	INT			= 50		-- replace this value with the relevant % of free space you are looking for per each file.
+DECLARE @Drive						NCHAR(1)	= NULL		-- replace this valus with the relevant Disk (e.g. 'G' or 'L'...). Leave as NULL for all.
+DECLARE @FileType					NCHAR(4)	= NULL		-- replace with the file type you need: 'LOG' or 'ROWS' (data). Leave as NULL for all.
+
 --======DO NOT CHANGE ANYTHING BELOW THIS LINE======
 
 
@@ -96,15 +98,15 @@ FROM
 	INNER JOIN sys.master_files mf 
 	ON d.database_id = mf.database_id
 	INNER JOIN #FixedDrives fd  
-	ON LEFT(mf.physical_name,1) = fd.Drive
+	ON LEFT(mf.physical_name,1) = fd.drive
 	INNER JOIN #SpaceUsed su    
 	ON d.name = su.DbName AND mf.name = su.FileName
 WHERE
 	d.name NOT IN ('master', 'model', 'msdb', 'tempdb')
 	AND
-	drive = @Drive
+	(@Drive IS NULL OR drive = @Drive)
 	AND
-	type_desc = @FileType
+	(@FileType IS NULL OR type_desc = @FileType)
 	AND 
 	--mf.is_read_only = 0
 	d.is_read_only = 0 -- filter out read-only databases
