@@ -49,7 +49,7 @@ INNER JOIN sys.partitions ON indexes.object_id = partitions.object_id AND indexe
 LEFT JOIN sys.dm_db_index_usage_stats AS usage_stats ON indexes.index_id = usage_stats.index_id AND usage_stats.object_id = indexes.object_id AND usage_stats.database_id = DB_ID()
 LEFT JOIN sys.dm_db_partition_stats AS partition_stats ON indexes.index_id = partition_stats.index_id AND partition_stats.object_id = indexes.object_id
 WHERE
- ISNULL(usage_stats.user_updates, 0) + ISNULL(usage_stats.system_updates, 0) > ' + CAST(@MinimumUserUpdates AS NVARCHAR(MAX)) + N'
+ ISNULL(usage_stats.user_updates, 0) + ISNULL(usage_stats.system_updates, 0) >= ' + CAST(@MinimumUserUpdates AS NVARCHAR(MAX)) + N'
  AND ISNULL(usage_stats.user_lookups,0) = 0
  AND ISNULL(usage_stats.user_seeks,0) = 0
  AND ISNULL(usage_stats.user_scans,0) = 0
