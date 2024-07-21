@@ -567,7 +567,7 @@ SET @ObjectList =
            database_id AS id, 
            ''DATABASE'' AS class_desc,
            '''' AS class 
-       FROM master.sys.databases
+       FROM sys.databases
        UNION ALL
        SELECT SCHEMA_NAME(sys.all_objects.schema_id) ' + @Collation + N' AS SchemaName,
            name ' + @Collation + N' AS name, 

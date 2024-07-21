@@ -1,4 +1,4 @@
-IF OBJECT_ID('#sp_SrvPermissions') IS NOT NULL DROP PROCEDURE #sp_SrvPermissions
+IF OBJECT_ID('tempdb..#sp_SrvPermissions') IS NOT NULL DROP PROCEDURE #sp_SrvPermissions
 GO
 /*********************************************************************************************
 sp_SrvPermissions V6.1
@@ -121,6 +121,7 @@ Data is ordered as follows
 --            - Add CHECK_POLICY and CHECK_EXPIRATION
 --            - Add script support for disabled 
 --            - Add script support for a single credential.  Will not support multiple credentials.
+-- 21/07/2024 - Adaptations to support Azure SQL DB
 *********************************************************************************************/
 CREATE PROCEDURE #sp_SrvPermissions 
 (
@@ -154,6 +155,10 @@ DECLARE @Version2005orLower bit
 SELECT @Version2005orLower = CASE WHEN PARSENAME(CAST(SERVERPROPERTY('productversion') AS VARCHAR(20)),4) < 10 THEN 1
                             ELSE 0 END
    
+DECLARE @SupportsCreds bit
+SET @SupportsCreds = CASE WHEN OBJECT_ID('sys.server_principal_credentials') IS NOT NULL AND OBJECT_ID('sys.credentials') IS NOT NULL THEN 1
+						ELSE 0 END
+
 DECLARE @sql nvarchar(max)
 DECLARE @LikeOperator nvarchar(4)
 
@@ -210,8 +215,10 @@ SET @sql =
                    ISNULL('' DEFAULT_LANGUAGE = '' + QUOTENAME(Logins.default_language_name' + @Collation + N'), '''') +
                    CASE WHEN Logins.type = ''S'' THEN
                         ISNULL('', CHECK_EXPIRATION = '' + CASE WHEN sql_logins.is_expiration_checked = 1 THEN ''ON'' ELSE ''OFF'' END, '''') +
-                        ISNULL('', CHECK_POLICY    = ''     + CASE WHEN sql_logins.is_policy_checked = 1 THEN ''ON'' ELSE ''OFF'' END, '''') +
-                        ISNULL('', CREDENTIAL = ''         + QUOTENAME(Creds.name), '''')
+                        ISNULL('', CHECK_POLICY    = ''     + CASE WHEN sql_logins.is_policy_checked = 1 THEN ''ON'' ELSE ''OFF'' END, '''')'
+						+ CASE WHEN @SupportsCreds = 1 THEN N' +
+                        ISNULL('', CREDENTIAL = ''         + QUOTENAME(Creds.name), '''')'
+						  ELSE N'' END + N'
                        ELSE '''' END
                ELSE '''' END +
                ''; '' +
@@ -223,11 +230,12 @@ SET @sql =
     LEFT OUTER JOIN sys.asymmetric_keys aKey
         ON Logins.sid = aKey.sid
     LEFT OUTER JOIN sys.sql_logins
-        ON Logins.sid = sql_logins.sid
+        ON Logins.sid = sql_logins.sid' + CASE WHEN @SupportsCreds = 1 THEN N'
     LEFT OUTER JOIN sys.server_principal_credentials LoginCreds
         ON Logins.principal_id = LoginCreds.principal_id
     LEFT OUTER JOIN sys.credentials Creds
-        ON LoginCreds.credential_id = Creds.credential_id
+        ON LoginCreds.credential_id = Creds.credential_id'
+		ELSE N'' END + N'
     WHERE 1=1 '
    
 IF LEN(ISNULL(@Principal,@Role)) > 0 
@@ -413,7 +421,10 @@ BEGIN
     -- Add insert statement to @sql
     SET @sql = N'INSERT INTO ##SrvPermissions ' + NCHAR(13) + @sql
 
-    EXEC sp_executesql @sql, N'@Principal sysname, @Role sysname, @Type nvarchar(30)', @Principal, @Role, @Type
+	IF OBJECT_ID('sys.server_permissions') IS NOT NULL
+	BEGIN
+		EXEC sp_executesql @sql, N'@Principal sysname, @Role sysname, @Type nvarchar(30)', @Principal, @Role, @Type
+	END
 END
 
 IF @Print <> 1
