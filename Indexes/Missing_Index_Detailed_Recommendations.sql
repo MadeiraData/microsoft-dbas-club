@@ -3,6 +3,7 @@ DECLARE
 , @MinAverageUserImpact int = 65
 , @MinSeeksOrScansPerDay int = 100
 , @MinUniqueCompiles int = 20
+, @WriteableDBsOnly bit = 0
 
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
@@ -104,7 +105,7 @@ SELECT [name]
 FROM sys.databases
 where database_id > 4
 AND HAS_DBACCESS([name]) = 1
-AND DATABASEPROPERTYEX([name], 'Updateability') = 'READ_WRITE';
+AND (@WriteableDBsOnly = 0 OR DATABASEPROPERTYEX([name], 'Updateability') = 'READ_WRITE');
 
 OPEN DBs;
 WHILE 1=1
