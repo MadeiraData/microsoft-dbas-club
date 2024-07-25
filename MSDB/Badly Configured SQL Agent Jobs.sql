@@ -48,17 +48,17 @@ CROSS APPLY
 	WHERE counts.steps_count = 0
 	UNION ALL
 	SELECT Issue = N'No enabled schedules or alerts, and no recent runs'
-	, RemediationCmd = N'EXEC msdb.dbo.sp_add_jobschedule @job_name=N' + QUOTENAME(j.name, N'''') + ', @name=N''schedule name'', @enabled=1, @freq_type=4, @freq_interval=1, @freq_subday_type=1, @freq_subday_interval=0, @freq_relative_interval=0, @freq_recurrence_factor=1, @active_start_date=20220101, @active_end_date=99991231, @active_start_time=0, @active_end_time=235959;'
+	, RemediationCmd = N'EXEC msdb.dbo.sp_add_jobschedule @job_name=N' + QUOTENAME(j.name, N'''') + ', @name=N' + QUOTENAME(j.name, N'''') + ', @enabled=1, @freq_type=4, @freq_interval=1, @freq_subday_type=1, @freq_subday_interval=0, @freq_relative_interval=0, @freq_recurrence_factor=1, @active_start_date=20220101, @active_end_date=99991231, @active_start_time=0, @active_end_time=235959;'
 	WHERE counts.schedules_count = 0
 	AND counts.recent_runs_count = 0 AND counts.alerts_count = 0
 	AND cat.name NOT IN ('SQL Sentry Jobs', 'SentryOne Jobs')
 	UNION ALL
 	SELECT Issue = N'No valid owner'
-	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + SUSER_SNAME(0x01) + N';'
+	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + QUOTENAME(SUSER_SNAME(0x01), N'''') + N';'
 	WHERE SUSER_SNAME(j.owner_sid) IS NULL
 	UNION ALL
 	SELECT Issue = N'Owner not sa'
-	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + SUSER_SNAME(0x01) + N';'
+	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + QUOTENAME(SUSER_SNAME(0x01), N'''') + N';'
 	WHERE j.owner_sid <> 0x01
 ) AS issues
 WHERE j.date_created < DATEADD(MINUTE, -15, GETDATE()) -- allow grace period for newly created jobs
