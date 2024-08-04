@@ -1,7 +1,7 @@
 CREATE EVENT SESSION [AuditLogins] ON SERVER 
 ADD EVENT sqlserver.login(
     ACTION(sqlserver.client_app_name,sqlserver.client_hostname,sqlserver.database_id,sqlserver.server_principal_name))
-ADD TARGET package0.histogram(SET filtering_event_name=N'sqlserver.login',source=N'sqlserver.server_principal_name')
+ADD TARGET package0.histogram(SET filtering_event_name=N'sqlserver.login',source=N'sqlserver.server_principal_name'),
 ADD TARGET package0.event_file(SET filename=N'AuditLogins')
 WITH (STARTUP_STATE=ON)
 GO
