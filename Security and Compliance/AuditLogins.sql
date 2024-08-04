@@ -48,13 +48,13 @@ where column_name = 'filename' and s.name = 'AuditLogins'
 ;WITH tabular AS
 (
 SELECT 
- [timestamp] = data.value('(event/@timestamp)[1]','varchar(30)'),
- [client_hostname] = data.value('(event/action[@name="client_hostname"]/value)[1]','nvarchar(4000)'),
- [client_app_name] = data.value('(event/action[@name="client_app_name"]/value)[1]','nvarchar(4000)'),
- [database_id] = data.value('(event/action[@name="database_id"]/value)[1]','int'),
- [database_name] = DB_NAME(data.value('(event/action[@name="database_id"]/value)[1]','int')),
- [server_principal_name] = data.value('(event/action[@name="server_principal_name"]/value)[1]','sysname'),
- [data] = data.query('.')
+ [timestamp] = event_xml.value('(event/@timestamp)[1]','varchar(30)'),
+ [client_hostname] = event_xml.value('(event/action[@name="client_hostname"]/value)[1]','nvarchar(4000)'),
+ [client_app_name] = event_xml.value('(event/action[@name="client_app_name"]/value)[1]','nvarchar(4000)'),
+ [database_id] = event_xml.value('(event/action[@name="database_id"]/value)[1]','int'),
+ [database_name] = DB_NAME(event_xml.value('(event/action[@name="database_id"]/value)[1]','int')),
+ [server_principal_name] = event_xml.value('(event/action[@name="server_principal_name"]/value)[1]','sysname'),
+ [data] = event_xml.query('.')
 FROM #events AS event_data
 )
 --SELECT * FROM tabular AS t ORDER BY [timestamp] DESC;
