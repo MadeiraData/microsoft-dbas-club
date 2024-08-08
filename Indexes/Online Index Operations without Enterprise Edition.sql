@@ -418,7 +418,7 @@ SET @CMD = N'
 	ALTER TABLE ' + @NewTableName + N' ADD CONSTRAINT ' + QUOTENAME(pk.name + @NewTableNamePostfix) COLLATE database_default
 	,
 	@RenameCommands = ISNULL(@RenameCommands, N'') + N'
-EXEC sp_rename N''' +  pk.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + pk.name COLLATE database_default + N''';'
+EXEC sp_rename N''' + @SourceTableName + N'.' + pk.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + pk.name COLLATE database_default + N''';'
 
 	FROM sys.indexes AS pk
 	INNER JOIN sys.data_spaces AS ds ON pk.data_space_id = ds.data_space_id 
@@ -435,7 +435,7 @@ EXEC sp_rename N''' +  pk.name COLLATE database_default + @NewTableNamePostfix +
 	ALTER TABLE ' + @NewTableName + N' ADD CONSTRAINT ' + QUOTENAME(df.name + @NewTableNamePostfix) COLLATE database_default + N' DEFAULT ' + df.definition COLLATE database_default + N' FOR ' + QUOTENAME(c.name) COLLATE database_default + N';'
 	,
 	@RenameCommands = ISNULL(@RenameCommands, N'') + N'
-EXEC sp_rename N''' +  df.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + df.name COLLATE database_default + N''';'
+EXEC sp_rename N''' + @SourceTableName + N'.' + df.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + df.name COLLATE database_default + N''';'
 	FROM sys.default_constraints AS df
 	INNER JOIN sys.columns AS c
 	ON df.parent_object_id = c.object_id
