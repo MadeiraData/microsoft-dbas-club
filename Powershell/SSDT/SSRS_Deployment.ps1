@@ -6,6 +6,7 @@ Param
 [switch] $CustomAuthentication,
 [string] $ApiVersion,
 [string] $TargetFolder = "/My-Reports/Sample-Reports",
+[switch] $Recursive = $true,
 [string] $OverrideDataSourcePathForAll, #= "/My-Reports/Data Sources/ProdDS",
 [string] $logFileFolderPath = "C:\SSRS_deployment_log",
 [string] $logFilePrefix = "ssrs_deploy_",
@@ -56,7 +57,6 @@ if ($logFileFolderPath -ne "")
 }
 #endregion initialization
 
-
 #region install-modules
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -105,7 +105,6 @@ foreach ($module in $modules) {
 
 #endregion install-modules
 
-
 #region main
 
 $ErrorActionPreference = "Stop"
@@ -127,9 +126,7 @@ if (!$SourceFolder.EndsWith("\"))
 
 Write-Output "====================================================================================="
 Write-Output "                             Deploying SSRS Reports"
-Write-Output "Source Folder: $SourceFolder"
 Write-Output "Target Server: $TargetReportServerUri"
-Write-Output "Target Folder: $TargetFolder"
 
 
 $ProxyParams = @{
@@ -152,45 +149,72 @@ Write-Output "==================================================================
 $Proxy = New-RsWebServiceProxy @ProxyParams
 
 
-if ($TargetFolder -ne "/") {
+$SourceFoldersList = @()
+$SourceFoldersList += $SourceFolder
 
-  if ($TargetFolder.StartsWith("/")) {
-      $TargetFolder = $TargetFolder.Remove(0,1)
-  }
-  
-  Write-Output "$(Get-TimeStamp) Creating Folder: $TargetFolder"
-  New-RsFolder -Proxy $Proxy -Path / -Name $TargetFolder -Verbose -ErrorAction SilentlyContinue
+if ($Recursive) {
+    Get-ChildItem -Recurse -Directory -Path $SourceFolder | ForEach-Object {
+        $SourceFoldersList += $_.FullName
+    }
 }
 
-if (!$TargetFolder.StartsWith("/")) {
-    $TargetFolder = $TargetFolder.Insert(0, "/")
-}
+$SourceFoldersList | ForEach-Object {
 
-Write-Output "$(Get-TimeStamp) Deploying Data Source files from: $SourceFolder"
-DIR $SourceFolder -Filter *.rds | % { $_.FullName } |
-    Write-RsCatalogItem -Proxy $Proxy -Destination $TargetFolder -Verbose -Overwrite
-
-Write-Output "$(Get-TimeStamp) Deploying Data Set files from: $SourceFolder"
-DIR $SourceFolder -Filter *.rsd | % { $_.FullName } |
-    Write-RsCatalogItem -Proxy $Proxy -Destination $TargetFolder -Verbose -Overwrite
-
-Write-Output "$(Get-TimeStamp) Deploying Report Definition files from: $SourceFolder"
-DIR $SourceFolder -Filter *.rdl | % { $_.FullName } |
-    Write-RsCatalogItem -Proxy $Proxy -Destination $TargetFolder -Verbose -Overwrite
+    $currSourceFolder = $_
     
-if ($OverrideDataSourcePathForAll -ne $null -and $OverrideDataSourcePathForAll -ne "") {
-    Write-Output "$(Get-TimeStamp) Fixing Data Source references to: $OverrideDataSourcePathForAll"
+    if (!$currSourceFolder.EndsWith("\"))
+    {
+        $currSourceFolder = $currSourceFolder + "\"
+    }
 
-    Get-RsFolderContent -Proxy $Proxy -RsFolder $TargetFolder | ForEach {
-        $CurrReport = $_
-        Get-RsItemReference -Proxy $Proxy -Path $CurrReport.Path | Where ReferenceType -eq "DataSource" | ForEach {
-            $CurrReference = $_
+    if ($currSourceFolder -ne $SourceFolder) {
+        $currTargetFolder = $TargetFolder + "/" + [Regex]::Replace($currSourceFolder,$SourceFolder.Replace('\','\\'),'').Replace('\','/')
+    } else {
+        $currTargetFolder = $TargetFolder
+    }
 
-            if ($CurrReference.Reference -ne $OverrideDataSourcePathForAll) {
-                Write-Output "$(Get-TimeStamp) UPDATING: Data Source $($CurrReference.Name) in report $($CurrReport.Path)"
-                Set-RsDataSourceReference -Proxy $Proxy -Path $CurrReport.Path -DataSourceName $CurrReference.Name -DataSourcePath $OverrideDataSourcePathForAll
-            } else {
-                Write-Output "$(Get-TimeStamp) Data Source $($CurrReference.Name) in report $($CurrReport.Path) already set correctly."
+    Write-Output "====================================================================================="
+    Write-Output "Source Folder: $currSourceFolder"
+    Write-Output "Target Folder: $currTargetFolder"
+    Write-Output "=============="
+
+    if ($currTargetFolder -ne "/") {
+
+      if ($currTargetFolder.StartsWith("/")) {
+          $currTargetFolder = $currTargetFolder.Remove(0,1)
+      }
+  
+      Write-Output "$(Get-TimeStamp) Creating Folder: $currTargetFolder"
+      New-RsFolder -Proxy $Proxy -Path / -Name $currTargetFolder -Verbose -ErrorAction SilentlyContinue
+    }
+
+    if (!$currTargetFolder.StartsWith("/")) {
+        $currTargetFolder = $currTargetFolder.Insert(0, "/")
+    }
+
+    Write-Output "$(Get-TimeStamp) Deploying Data Source files from: $currSourceFolder"
+    DIR $currSourceFolder -Filter *.rds | % { $_.FullName } | Write-RsCatalogItem -Proxy $Proxy -Destination $currTargetFolder -Verbose -Overwrite
+
+    Write-Output "$(Get-TimeStamp) Deploying Data Set files from: $currSourceFolder"
+    DIR $currSourceFolder -Filter *.rsd | % { $_.FullName } | Write-RsCatalogItem -Proxy $Proxy -Destination $currTargetFolder -Verbose -Overwrite
+
+    Write-Output "$(Get-TimeStamp) Deploying Report Definition files from: $currSourceFolder"
+    DIR $currSourceFolder -Filter *.rdl | % { $_.FullName } | Write-RsCatalogItem -Proxy $Proxy -Destination $currTargetFolder -Verbose -Overwrite
+    
+    if ($OverrideDataSourcePathForAll -ne $null -and $OverrideDataSourcePathForAll -ne "") {
+        Write-Output "$(Get-TimeStamp) Fixing Data Source references to: $OverrideDataSourcePathForAll"
+        
+        Get-RsFolderContent -Proxy $Proxy -RsFolder $currTargetFolder | ForEach {
+            $CurrReport = $_
+            Get-RsItemReference -Proxy $Proxy -Path $CurrReport.Path | Where ReferenceType -eq "DataSource" | ForEach {
+                $CurrReference = $_
+
+                if ($CurrReference.Reference -ne $OverrideDataSourcePathForAll) {
+                    Write-Output "$(Get-TimeStamp) UPDATING: Data Source $($CurrReference.Name) in report $($CurrReport.Path)"
+                    Set-RsDataSourceReference -Proxy $Proxy -Path $CurrReport.Path -DataSourceName $CurrReference.Name -DataSourcePath $OverrideDataSourcePathForAll
+                } else {
+                    Write-Output "$(Get-TimeStamp) Data Source $($CurrReference.Name) in report $($CurrReport.Path) already set correctly."
+                }
             }
         }
     }
