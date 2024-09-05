@@ -17,8 +17,8 @@ GO
 RESTORE DATABASE MyDB FROM 
 DISK = 'F:\MyDB_FULL_20200602_233000.bak'
 WITH MOVE 'MyDB_Data' TO 'F:\data\MyDB_Data.mdf',
-     MOVE 'MyDB_Log'  TO  'G:\log\MyDB_Log.ldf',
-FILE = 1;
+     MOVE 'MyDB_Log'  TO 'G:\log\MyDB_Log.ldf',
+FILE = 1, STATS = 5;
 GO
 CLOSE MASTER KEY;
 GO

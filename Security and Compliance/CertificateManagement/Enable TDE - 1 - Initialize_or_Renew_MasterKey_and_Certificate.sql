@@ -75,6 +75,10 @@ RAISERROR(N'Regenerating master key...',0,1) WITH NOWAIT;
 
 ALTER MASTER KEY REGENERATE WITH ENCRYPTION BY PASSWORD = '$(MasterKeyPassword)';
 
+-- Run this command to allow the master key to be opened automatically by server startup (avoid error 15581)
+IF EXISTS (select * from sys.databases where name = 'master' and is_master_key_encrypted_by_server = 0)
+ALTER MASTER KEY ADD ENCRYPTION BY SERVICE MASTER KEY;
+
 SET @Path = '$(BackupFolderPath)Master_Key_' + @ToDate + '_NEW.key'
 
 RAISERROR(N'Backing up NEW master key to: %s',0,1,@Path) WITH NOWAIT;

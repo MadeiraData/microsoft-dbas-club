@@ -34,7 +34,7 @@ END
 GO
 USE [master]
 GO 
--- Uncomment below if a master key already exists (don't forget to change the decryption password as needed)
+-- Run this if a master key already exists (don't forget to change the decryption password as needed)
 IF EXISTS (SELECT * FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMasterKey##')
 OPEN MASTER KEY DECRYPTION BY PASSWORD = '$(MasterKeyPassword)';
 GO
@@ -46,6 +46,10 @@ RESTORE MASTER KEY
 GO
 OPEN MASTER KEY DECRYPTION BY PASSWORD = '$(MasterKeyPassword)';
 GO
+-- Run this command to allow the master key to be opened automatically by server startup (avoid error 15581)
+IF EXISTS (select * from sys.databases where name = 'master' and is_master_key_encrypted_by_server = 0)
+ALTER MASTER KEY ADD ENCRYPTION BY SERVICE MASTER KEY;
+GO
 IF EXISTS (SELECT * FROM sys.certificates WHERE name = '$(CertificateName)')
 BEGIN
 	RAISERROR(N'Dropping existing certificate...',0,1) WITH NOWAIT;
@@ -53,10 +57,9 @@ BEGIN
 	DROP CERTIFICATE [$(CertificateName)];
 END
 GO
+RAISERROR(N'Creating new certificate...',0,1) WITH NOWAIT;
 CREATE CERTIFICATE [$(CertificateName)]   
     FROM FILE = '$(CertificateBackupFilePath)'   
     WITH PRIVATE KEY (FILE = '$(CertificateBackupFileKeyPath)',   
     DECRYPTION BY PASSWORD = '$(CertificatePassword)');  
-GO
-CLOSE MASTER KEY;
 GO
