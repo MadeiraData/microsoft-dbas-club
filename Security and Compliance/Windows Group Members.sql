@@ -39,5 +39,5 @@ END
 CLOSE Groups;
 DEALLOCATE Groups;
 
-SELECT *
+SELECT *, IS_SRVROLEMEMBER('sysadmin',AccountName) AS IsLoginSysAdmin, IS_SRVROLEMEMBER('sysadmin',GroupPath) AS IsGroupSysAdmin
 FROM #GroupMembers
