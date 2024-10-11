@@ -12,11 +12,11 @@ DECLARE
 	, @FileNameQualifier			VARCHAR(4000)	= 'MyDB_%.trn'
 	, @DatabaseName					SYSNAME			= 'MyDB'
 	, @PerformRecovery				BIT				= 0
-	, @StandByFilePath				varchar(4000)		= NULL --'C:\MSSQL\DATA\MyDB_StandbyFile.undo'
+	, @StandByFilePath				VARCHAR(4000)	= NULL --'C:\MSSQL\DATA\MyDB_StandbyFile.undo'
 
 SET NOCOUNT ON;
 
-DECLARE @CMD VARCHAR(4000)
+DECLARE @CMD NVARCHAR(4000), @FilePath NVARCHAR(4000), @CanBeApplied BIT;
 
 -- Add backslash at end of path if doesn't exist already
 IF RIGHT(@TransactionLogBackupFolder, 1) <> '\'
@@ -47,14 +47,29 @@ WHILE 1=1
 BEGIN
 	FETCH NEXT FROM CM INTO @CurrPath
 	IF @@FETCH_STATUS <> 0 BREAK;
+	
+	SET @FilePath = @TransactionLogBackupFolder + @CurrPath;
+	SET @CanBeApplied = NULL;
 
-	-- Prepare and execute RESTORE LOG command
-	SET @CMD = N'RESTORE LOG ' + QUOTENAME(@DatabaseName) + N' FROM  
-DISK = N''' + @TransactionLogBackupFolder + @CurrPath + N''' WITH  
+	EXEC sp_can_tlog_be_applied
+		@backup_file_name = @FilePath,
+		@database_name = @DatabaseName,
+		@result = @CanBeApplied OUTPUT;
+
+	IF @CanBeApplied = 1
+	BEGIN
+		-- Prepare and execute RESTORE LOG command
+		SET @CMD = N'RESTORE LOG ' + QUOTENAME(@DatabaseName) + N' FROM  
+DISK = N''' + @FilePath + N''' WITH  
 FILE = 1,  NORECOVERY,  NOUNLOAD,  STATS = 10'
 	
-	RAISERROR(@CMD,0,1) WITH NOWAIT;
-	EXEC(@CMD);
+		RAISERROR(@CMD,0,1) WITH NOWAIT;
+		EXEC(@CMD);
+	END
+	ELSE
+	BEGIN
+		RAISERROR(N'Skipping: %s',0,1,@FilePath) WITH NOWAIT;
+	END
 END
 
 CLOSE CM
