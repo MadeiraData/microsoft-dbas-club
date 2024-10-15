@@ -1,6 +1,6 @@
 /*
 TempDB
-http://www.madeiradata.com/troubleshooting-tempdb-space-usage/
+https://www.madeiradata.com/post/troubleshooting-tempdb-space-usage
 
 Object Types That can use tempdb space-
 
