@@ -27,13 +27,12 @@ FROM sys.partition_functions AS pf
 INNER JOIN sys.partition_parameters AS params ON params.function_id = pf.function_id
 INNER JOIN sys.types AS tp ON params.system_type_id = tp.system_type_id AND params.user_type_id = tp.user_type_id
 INNER JOIN sys.partition_schemes as ps on ps.function_id=pf.function_id
-INNER JOIN sys.indexes as si on si.data_space_id=ps.data_space_id
-INNER JOIN sys.objects as so on si.object_id = so.object_id
+INNER JOIN sys.indexes AS ix ON ix.data_space_id = ps.data_space_id
+INNER JOIN sys.partitions as p on ix.object_id=p.object_id and ix.index_id=p.index_id
+INNER JOIN sys.objects as so on ix.object_id = so.object_id
 INNER JOIN sys.schemas as sc on so.schema_id = sc.schema_id
-INNER JOIN sys.partitions as p on si.object_id=p.object_id and si.index_id=p.index_id
-LEFT JOIN sys.indexes AS ix ON ix.data_space_id = ps.data_space_id
-LEFT JOIN sys.index_columns AS ic ON ic.object_id = p.object_id AND ic.index_id = p.index_id AND ic.partition_ordinal > 0
-LEFT JOIN sys.columns AS c ON c.object_id = p.object_id AND c.column_id = ic.column_id
+INNER JOIN sys.index_columns AS ic ON ic.object_id = p.object_id AND ic.index_id = p.index_id AND ic.partition_ordinal > 0
+INNER JOIN sys.columns AS c ON c.object_id = p.object_id AND c.column_id = ic.column_id
 LEFT JOIN sys.partition_range_values as prv on prv.function_id=pf.function_id AND p.partition_number= 
 		CASE pf.boundary_value_on_right WHEN 1
 			THEN prv.boundary_id + 1
