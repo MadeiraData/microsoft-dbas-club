@@ -218,7 +218,7 @@ RAISERROR(N'%s', 0,1, @Msg) WITH NOWAIT;
 
 DECLARE @StagingTablesToRecover AS TABLE(StagingTable sysname, RecoverCommand nvarchar(max));
 
-BEGIN TRAN;
+IF @AllowDataMovementForColumnstore = 1 BEGIN TRAN;
 
 IF @MissingIntervals > 0 OR @IsCurrentRangeValueSmallerThanTargetValue = 1
 BEGIN
@@ -389,27 +389,30 @@ END
 ELSE
 	PRINT N'No new partition ranges required.'
 	
--- Recover any data saved in staging tables due to columnstore indexes
-DECLARE StagingTables CURSOR
-LOCAL FAST_FORWARD
-FOR
-SELECT StagingTable, RecoverCommand
-FROM @StagingTablesToRecover
-
-OPEN StagingTables;
-
-WHILE 1=1
+IF @AllowDataMovementForColumnstore = 1
 BEGIN
-	FETCH NEXT FROM StagingTables INTO @StagingTableName, @CMD;
-	IF @@FETCH_STATUS <> 0 BREAK;
-	IF @Verbose = 1 PRINT @CMD;
-	IF @DebugOnly = 0 EXEC sp_executesql @CMD
+	-- Recover any data saved in staging tables due to columnstore indexes
+	DECLARE StagingTables CURSOR
+	LOCAL FAST_FORWARD
+	FOR
+	SELECT StagingTable, RecoverCommand
+	FROM @StagingTablesToRecover
+
+	OPEN StagingTables;
+
+	WHILE 1=1
+	BEGIN
+		FETCH NEXT FROM StagingTables INTO @StagingTableName, @CMD;
+		IF @@FETCH_STATUS <> 0 BREAK;
+		IF @Verbose = 1 PRINT @CMD;
+		IF @DebugOnly = 0 EXEC sp_executesql @CMD
+	END
+
+	CLOSE StagingTables;
+	DEALLOCATE StagingTables;
+
+	COMMIT TRAN;
 END
-
-CLOSE StagingTables;
-DEALLOCATE StagingTables;
-
-COMMIT TRAN;
 
 SET @Msg = CONCAT(CONVERT(nvarchar(24), GETDATE(), 121), N' - Done.')
 RAISERROR(N'%s', 0,1, @Msg) WITH NOWAIT;
