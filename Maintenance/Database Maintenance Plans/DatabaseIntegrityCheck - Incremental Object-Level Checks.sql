@@ -67,8 +67,7 @@ OUTER APPLY
 		  ,[ObjectType]
 ) AS ep
 WHERE so.[type] IN (''U'', ''V'')
-GROUP BY so.[object_id], so.[name], ss.name, so.[type], so.type_desc, ep.[EndTime]
-ORDER BY ep.[EndTime] ASC, SUM(sps.used_page_count) DESC'
+GROUP BY so.[object_id], so.[name], ss.name, so.[type], so.type_desc, ep.[EndTime]'
 
 DECLARE DBs CURSOR
 LOCAL FAST_FORWARD READ_ONLY
