@@ -35,4 +35,6 @@ CLOSE dbs;
 DEALLOCATE dbs;
 
 SELECT *
+, DropUserCommand = N'USE ' + QUOTENAME(DBName) + N'; DROP USER ' + QUOTENAME(UserName) + N';'
+, RemoveSysAdminRoleCommand = N'ALTER SERVER ROLE [sysadmin] DROP MEMBER ' + QUOTENAME(LoginName) + N';'
 FROM @Results
