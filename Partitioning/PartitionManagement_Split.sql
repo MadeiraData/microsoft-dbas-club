@@ -134,6 +134,8 @@ BEGIN
 	RETURN -1;
 END
 
+IF @Verbose = 1 OR @DebugOnly = 1 RAISERROR(N'Column data type: %s',0,1,@PartitionKeyDataType) WITH NOWAIT;
+
 IF @PartitionRangeInterval IS NULL AND @MaxPartitionRangeValue IS NOT NULL
 BEGIN
 	SET @CMD = N'
@@ -237,7 +239,14 @@ BEGIN
 			, N'@IsSmaller bit OUTPUT, @CurrentRangeValue sql_variant OUTPUT, @TargetRangeValue sql_variant, @LastPartitionNumber int OUTPUT, @PartitionRangeInterval sql_variant'
 			, @IsCurrentRangeValueSmallerThanTargetValue OUTPUT, @CurrentRangeValue OUTPUT, @TargetRangeValue, @LastPartitionNumber OUTPUT, @PartitionRangeInterval;
 		
-		SET @Msg = CONCAT(CONVERT(nvarchar(24), GETDATE(), 121), N' - Splitting range: ', CONVERT(nvarchar(max), CONVERT(bigint, @CurrentRangeValue)))
+		SET @Msg = CONCAT(CONVERT(nvarchar(24), GETDATE(), 121), N' - Splitting range: ', CONVERT(nvarchar(max),
+				CASE
+				WHEN @PartitionKeyDataType LIKE '%date%' OR @PartitionKeyDataType LIKE '%time%' THEN CONVERT(datetime, @CurrentRangeValue)
+				WHEN @PartitionKeyDataType LIKE '%int%' OR @PartitionKeyDataType LIKE '%decimal%' OR @PartitionKeyDataType LIKE '%numeric%' OR @PartitionKeyDataType IN ('float', 'real') THEN CONVERT(float, @CurrentRangeValue)
+				WHEN @PartitionKeyDataType LIKE '%char%' OR @PartitionKeyDataType IN ('text', 'ntext') THEN CONVERT(nvarchar(max), @CurrentRangeValue)
+				ELSE CONVERT(bigint, @CurrentRangeValue)
+				END
+				))
 		RAISERROR(N'%s (partition %d)', 0,1, @Msg, @LastPartitionNumber) WITH NOWAIT;
 		
 		-- Execute NEXT USED for all dependent partition schemes:
@@ -283,7 +292,7 @@ BEGIN
 
 			SET @CMD = @CMD + QUOTENAME(@NextFG) + N' -- prev: ' + QUOTENAME(@CurrFG);
 
-			PRINT @CMD;
+			IF @Verbose = 1 OR @DebugOnly = 1 PRINT @CMD;
 			IF @DebugOnly = 0 EXEC (@CMD);
 		END
 
