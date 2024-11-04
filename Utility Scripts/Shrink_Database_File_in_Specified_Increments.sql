@@ -19,6 +19,7 @@ Description:
 ----------------------------------------------------------------------------
 
 Change log:
+	2024-09-29 - Vitaly - Added a time limit (maximum execution duration) for the process (@TimeLimit and @RunStartTime parameters) 
 	2021-09-17 - Renamed @MinPercentFree to @MaxPercentUsed, some code-quality fixes
 	2021-09-17 - added shrink with TRUNCATEONLY attempt when conditions favor it
 	2021-09-17 - added linked server connectivity test. moved recovery queue check to start of loop.
@@ -49,6 +50,7 @@ DECLARE
 	,@AGReplicaLinkedServer	SYSNAME	= NULL		-- Linked Server name of the AG replica to check. Leave as NULL to ignore.
 	,@MaxReplicaRecoveryQueue INT	= 10000		-- Maximum recovery queue of AG replica (in KB). Use this to prevent overload on the AG.
 	,@RecoveryQueueSeverity INT	= 16		-- Error severity to raise when @MaxReplicaRecoveryQueue is breached.
+	,@TimeLimit					INT 		= 86400				-- Set a maximum execution duration in second (3600 = 1 hour / 86400 = 24 hours) / NULL - no limmit!
 
 	,@WhatIf		BIT	= 0		-- Set to 1 to only print the commands but not run them.
 
@@ -59,7 +61,7 @@ DECLARE
 SET NOCOUNT, ARITHABORT, XACT_ABORT ON;
 SET ANSI_WARNINGS OFF;
 DECLARE @CurrSizeMB INT, @sp_executesql NVARCHAR(1000), @CMD NVARCHAR(MAX), @SpaceUsedMB INT, @SpaceUsedPct VARCHAR(10), @TargetPct VARCHAR(10);
-DECLARE @NewSizeMB INT, @RetryNum INT
+DECLARE @NewSizeMB INT, @RetryNum INT, @RunStartTime datetime;
 SET @DatabaseName = ISNULL(@DatabaseName, DB_NAME());
 SET @RetryNum = 0;
 
@@ -164,7 +166,15 @@ SET @SpaceUsedPct = CAST( CEILING(@SpaceUsedMB * 100.0 / @CurrSizeMB) as varchar
 SET @TargetPct = CAST( CEILING(@SpaceUsedMB * 100.0 / @TargetSizeMB) as varchar(10)) + '%'
 
 IF @SpaceUsedMB IS NOT NULL
-	RAISERROR(N'-- Database "%s", File "%s" current size: %d MB, used space: %d MB (%s), target size: %d MB (%s)',0,1,@DatabaseName,@FileName,@CurrSizeMB,@SpaceUsedMB,@SpaceUsedPct,@TargetSizeMB,@TargetPct) WITH NOWAIT;
+	RAISERROR(N'
+-- Database "%s", File "%s" current size: %d MB, used space: %d MB (%s), target size: %d MB (%s)',0,1,@DatabaseName,@FileName,@CurrSizeMB,@SpaceUsedMB,@SpaceUsedPct,@TargetSizeMB,@TargetPct) WITH NOWAIT;
+
+SET @RunStartTime = GETDATE();
+SET @CMD = CONVERT(VARCHAR(19), (DATEADD(SECOND, @TimeLimit, @RunStartTime)), 121)
+RAISERROR(N'-- Time limit is: %s
+
+',0,1,@CMD) WITH NOWAIT;
+
 
 IF @SpaceUsedMB IS NULL OR @CurrSizeMB <= @TargetSizeMB
 BEGIN
@@ -188,7 +198,9 @@ BEGIN
 				, N'@FileName SYSNAME, @NewSizeInMB FLOAT OUTPUT', @FileName, @CurrSizeMB OUTPUT
 END
 
+
 WHILE @CurrSizeMB > @TargetSizeMB
+	AND (@TimeLimit IS NULL OR DATEADD(SECOND, @TimeLimit, @RunStartTime) > GETDATE())
 BEGIN
 	-- Check recovery queue of AG partner
 	IF @AGReplicaLinkedServer IS NOT NULL AND @MaxReplicaRecoveryQueue IS NOT NULL
