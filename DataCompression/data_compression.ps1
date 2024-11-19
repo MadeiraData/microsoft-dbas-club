@@ -542,8 +542,7 @@ try
             --AND i.name = ''''            
             ORDER BY t.name;';        
             $ds = Exec-Sql -Server $Server -Database $database -CommandText $query -CommandType DataSet -IntegratedSecurity $WindowsAuthentication -Credentials $Credentials -ApplicationName $application_name;     
-
-            #$text = 'The number of indexes to process: {0}' -f $ds.Tables[0].Rows.Count;
+            
             Write-Message -Severity Info -Text "The number of indexes to process: $($ds.Tables[0].Rows.Count)" -LogToFile -LogFileName $log_file_full_name -ForegroundColor Yellow;    
 
             try
@@ -603,65 +602,27 @@ try
                         [bool]$is_clustered = $false;                        
                         if ($index.IndexType -eq [Microsoft.SqlServer.Management.Smo.IndexType]::ClusteredIndex) {$is_clustered = $true; }
 
-                        #[bool]$is_clustered_columnstore = $false;                        
-                        #if ($index.IndexType -eq [Microsoft.SqlServer.Management.Smo.IndexType]::ClusteredColumnStoreIndex) {$is_clustered_columnstore = $true; }
-
-
-                        # Find if the table contains a blob column.
-                        #if($is_clustered)
-                        #{
-                        #    $query = 
-                        #    'SET NOCOUNT ON; SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
-                        #    IF EXISTS
-                        #    (
-	                    #        SELECT 
-		                #             SCHEMA_NAME(t.schema_id) [schema], t.name [table], c.column_id  , c.name [column] ,tp.name [type], c.max_length
-	                    #        FROM sys.tables t
-	                    #        INNER JOIN sys.columns c ON c.object_id = t.object_id
-	                    #        INNER JOIN sys.types tp ON tp.user_type_id = c.user_type_id
-	                    #        WHERE t.is_ms_shipped = 0 AND t.name LIKE ''{0}'' AND tp.name IN (''text'', ''ntext'', ''image'', ''xml'', ''binary'')
-                        #    )
-                        #    SELECT 1 AS bit ELSE SELECT 0 AS bit;' -f $table_name;
-                        #    [bool]$blob = Exec-Sql -Server $Server -Database $database -CommandText $query -CommandType Scalar -IntegratedSecurity $WindowsAuthentication -Credentials $Credentials -ApplicationName $application_name;     
-                        #}
-
-
-
-                        # Find if the table contains a blob column.
-                       [bool]$has_blob = $false;
-                       # foreach ($column in $table.Columns) 
-                       # {
-                       #     if ($column.DataType.MaximumLength -eq -1 -or
-                       #         $column.DataType.Name -in @("text", "ntext", "image", "varbinary", "nvarchar", "varchar") -and $column.DataType.MaximumLength -eq -1) 
-                       #         {
-                       #             $has_blob = $true;
-                       #             break;
-                       #         }
-                       # }
-
-
-                       $lobs = @("text", "ntext", "image", "varbinary", "nvarchar", "varchar")
-                       foreach ($column in $table.Columns) 
-                       {
-                        if ($column.DataType.Name -in $lobs -and ($column.DataType.MaximumLength -eq -1 -or $column.DataType.Name -in @("text", "ntext", "image")) ) 
+                        # Find if the table has a blob column.
+                        [bool]$has_blob = $false;
+                        $lobs = @("text", "ntext", "image", "varbinary", "nvarchar", "varchar")
+                        foreach ($column in $table.Columns) 
                         {
-                            $has_blob = $true;
-                            break;                            
+                            if ($column.DataType.Name -in $lobs -and ($column.DataType.MaximumLength -eq -1 -or $column.DataType.Name -in @("text", "ntext", "image")) ) 
+                            {
+                                $has_blob = $true;
+                                break;                            
+                            }
                         }
-
-                        }
-                        #<#
+                        
                         # Find if the table has a columnstore clustered index as it prevents online rebuild for all none clustered indexes.
                         [bool]$table_has_clustered_columnstore = $false;                        
                         foreach ($index in $table.Indexes) 
                         {
                             if ($index.IndexType -eq [Microsoft.SqlServer.Management.Smo.IndexType]::ClusteredColumnStoreIndex) 
                             {
-                                $table_has_clustered_columnstore = $true;
-                                #$is_clustered = $false;   
+                                $table_has_clustered_columnstore = $true;                                
                             }
-                        }
-                        ##>
+                        }                        
 
                         # Set ONLINE=ON based on the edition.
                         # Can only be rebuild offline regrdless of the edition.
@@ -776,8 +737,7 @@ try
                             [string]$basic_syntax = 'CREATE ';                
                             if ($is_unique_constraint -or $is_primary_key -or $is_unique) {$basic_syntax += 'UNIQUE '; }
                             if ($is_clustered ) {$basic_syntax += 'CLUSTERED ';} 
-                            #if ($is_clustered_columnstore ) {$basic_syntax += 'CLUSTERED COLUMNSTORE ';} 
-                            #if (-not $is_clustered -and-not $is_clustered_columnstore) {$basic_syntax += 'NONCLUSTERED '}
+                            if (-not $is_clustered ) {$basic_syntax += 'NONCLUSTERED '}
                             $basic_syntax += 'INDEX ';
                             $basic_syntax += '[{0}] ON [{1}].[{2}]{3}{4} ' -f $index_name, $schema_name, $table_name, $new_line, $index_columns;
                         }
@@ -800,32 +760,20 @@ try
                             [string]$include_columns = $create_command.Substring($include_left_bracket+1, $include_right_bracket-$include_left_bracket-1);
                             $include_columns = 'INCLUDE ({0})' -f $include_columns;
                         }
-                        #return
+                        
                         # Get the filtered index bit.
                         $filter_predicate = $null;
                         if ($create_command.Contains('WHERE'))
                         {
                             [int]$where  = $create_command.IndexOf('WHERE'); 
                             [int]$where_left_bracket = $create_command.IndexOf('(', $where); 
-
-
-                            # Find the last occurrence of ')' before 'WITH'
-                            # Locate the position of 'WITH'.
-                            $with_index = $create_command.IndexOf("WITH");
-
-                            # Extract the string before 'WITH'.
-                            $string_before_with = $create_command.Substring(0, $with_index);
-
-                            # Step 3: Find the last occurrence of ')'
-                            $where_right_bracket = $string_before_with.LastIndexOf(")");
-
-                            #[int]$where_right_bracket = $lastParenIndex
-                            #[int]$where_right_bracket = $create_command.LastIndexOf( ")", $create_command.Substring(0, $create_command.IndexOf('WITH')) )
-                                        
                             
+                            [int]$with_index = $create_command.IndexOf("WITH");                            
+                            [string]$string_before_with = $create_command.Substring(0, $with_index);                            
+                            [int]$where_right_bracket = $string_before_with.LastIndexOf(")");
+
                             [string]$filter_predicate = $create_command.Substring($where_left_bracket+1, $where_right_bracket-$where_left_bracket-1);
-                            $filter_predicate = 'WHERE ({0}) ' -f $filter_predicate;
-                            #$filter_predicate += ')';
+                            [string]$filter_predicate = 'WHERE ({0}) ' -f $filter_predicate;                            
                         }                      
                 
                         # Get the filegroup.                
@@ -887,8 +835,7 @@ try
                         }
                         catch 
                         {
-                            [string]$exception = $_.Exception.Message;
-                            #Write-Message -Severity Info -Text $msg -LogToFile -LogFileName $log_file_full_name -ForegroundColor Cyan;
+                            [string]$exception = $_.Exception.Message;                            
                             Write-Message -Severity Error -Text $exception -LogToFile -LogFileName $log_file_full_name -ForegroundColor Red;                     
                         }
                 
