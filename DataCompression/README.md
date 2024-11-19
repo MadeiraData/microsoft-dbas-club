@@ -1,7 +1,7 @@
-.SYNOPSIS
+SYNOPSIS
     This script automates the process of applying data compression to indexes in sql server.
 
-.DESCRIPTION
+DESCRIPTION
     The scripts goes over all databases on the sql serevr instance and processes all indexes that were not 
     built using the data_compression index option.
 
@@ -16,52 +16,7 @@
     Move objets to a new/different file group.
 
 
-.PARAMETER 
-    [string]$Server
-    The sql server to process. If no value is passed the local computer name will be used.
-
-.PARAMETER 
-    [switch]$WindowsAuthentication
-    Use $WindowsAuthentication in order to connect to sql server using the current identity.
-
-.PARAMETER 
-    [string]$SqlUser
-    The sql login that will be used to connect to sql server.
-    If $WindowsAuthentication is passed $SqlUser is disregarded.
-
-
-.PARAMETER 
-    [bool;]$replace_filegroup
-    Optionaly rebuild the index on a new file group.
-
-.PARAMETER 
-    [bool]$switch_pk_keys_order
-    Optionaly flip/switch the order of the keys in the Primary Keys index.
-    This was originally added for a very specific case.
-
-.PARAMETER 
-    [int]$max_num_pk_keys
-    $max_num_pk_keys only takes effect if the pramter $switch_pk_keys_order is set True.
-    $max_num_pk_keys limmits the number of keys supported by the script. Current limmit is a Primary Key index with 4 keys.
-
-.PARAMETER 
-    [bool]$drop_fks 
-    if $drop_fks is true the script drops refferencing FKs, that is an FK whos columns refference index keys of an index we process.
-    FKs that are dropped are recreated after the index has been processed.
-    When set false refferencing FKs will not be dropped resulting in some of the indexes rebuild to fail due to the 
-    refferncing FK preventing to drop the index before creating it with the data compression option.
-
-.PARAMETER 
-    [string[]]$IncludeDatabase
-    Specify spcefic an explicit databases list to process in the form of: 'db1','db2', 'db3'
-
-.PARAMETER 
-    [string[]]$ExcludeDatabase
-    Specify spcefic an explicit databases list to exclude in the form of: 'db1','db2', 'db3'
-
-    
-
-.EXAMPLE    
+EXAMPLE    
     Work on the local instance using WindowsAuthentication.
     .\data_compression.ps1;
     .\data_compression.ps1 -Server $env:COMPUTERNAME; 
@@ -75,7 +30,7 @@
     .\data_compression.ps1 -Server server1 -WindowsAuthentication;
 
 
-.NOTES
+NOTES
     Author: Yaniv Etrogi - 20220502
     License: MIT
     Version: 2.0
