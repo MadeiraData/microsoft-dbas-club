@@ -11,11 +11,12 @@ DECLARE
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-CREATE TABLE #tmp(account_name sysname, err_desc nvarchar(MAX) NULL, err_date datetime);
+CREATE TABLE #tmp(account_name sysname, mailitem_id int, err_desc nvarchar(MAX) NULL, err_date datetime);
 
 INSERT INTO #tmp
 SELECT
 ISNULL(acc.name, '(null)') as account_name,
+el.mailitem_id,
 el.[description] as err_desc,
 el.log_date as err_date
 FROM msdb.dbo.sysmail_event_log el
@@ -35,8 +36,9 @@ ELSE
 	SELECT CONCAT(
 	'Account Name: ',ISNULL(account_name,'null'),
 	' encountered error on ', CONVERT(nvarchar(25),err_date,121) ,' - ', err_desc) as error_description,
-	1 as errCount
-	FROM #tmp
+	fi.*
+	FROM #tmp as el
+	left join msdb.dbo.sysmail_faileditems as fi ON el.mailitem_id = fi.mailitem_id
 	ORDER BY err_date DESC;
 
 DROP TABLE #tmp
