@@ -63,7 +63,7 @@ BEGIN
 	BEGIN TRY
 		SET @sql = '
 			SELECT 
-				' + QUOTENAME(@database_name) + ',
+				''' + @database_name + ''',
 				qsqp.query_id,
 				qsqp.plan_id,
 				qsqp.last_force_failure_reason_desc,
