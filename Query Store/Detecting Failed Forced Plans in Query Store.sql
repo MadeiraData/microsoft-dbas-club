@@ -6,6 +6,8 @@
 		Query plans that have been forced in Query Store may end up with the forcing in a “failed” state for a variety of reasons.
 		Sometimes this might be that a structure in the forced plan is no longer valid - maybe an index that had been selected in the plan has been dropped or its definition has changed.
 		This script identifies queries with forced plans that have failed with GENERAL_FAILURE in Query Store.
+		
+		The script adapted to run on SQL Server (2008 and up), Azure SQL DB and Azure Managed Instance 
 
 */
 
