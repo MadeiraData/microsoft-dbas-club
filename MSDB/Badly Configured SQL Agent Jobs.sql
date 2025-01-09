@@ -3,11 +3,19 @@
 Description: This script finds SQL Agent jobs that are suspiciously misconfigured
 Author: Eitan Blumin | https://www.madeiradata.com
 Date: 2022-04-28
-Last Update: 2022-04-28
+Last Update: 2025-01-09
 =================================================================================
 */
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+DECLARE @serviceAccount sysname;
+
+SELECT @serviceAccount = service_account
+FROM sys.dm_server_services
+WHERE servicename LIKE N'SQL Server (%)'
+
+SET @serviceAccount = CASE WHEN SUSER_SID(@serviceAccount) IS NULL THEN SUSER_SNAME(0x01) ELSE @serviceAccount END;
 
 SELECT
   server_name = CONVERT(sysname, SERVERPROPERTY('ServerName'))
@@ -35,7 +43,7 @@ SELECT
 , steps_count = (SELECT COUNT(*) FROM msdb.dbo.sysjobsteps AS jstep WHERE jstep.job_id = j.job_id)
 , schedules_count = (SELECT COUNT(*) FROM msdb.dbo.sysjobschedules AS jschd INNER JOIN msdb.dbo.sysschedules AS schd ON schd.schedule_id = jschd.schedule_id WHERE jschd.job_id = j.job_id AND schd.enabled = 1)
 , alerts_count = (SELECT COUNT(*) FROM msdb.dbo.sysalerts AS alrt WHERE alrt.job_id = j.job_id AND alrt.enabled = 1)
-, recent_runs_count = (SELECT COUNT(*) FROM msdb.dbo.sysjobhistory AS hist WHERE hist.job_id = j.job_id AND hist.run_date > CONVERT(varchar(1000), DATEADD(MONTH, -1, GETDATE()), 112))
+, recent_runs_count = (SELECT COUNT(*) FROM msdb.dbo.sysjobhistory AS hist WHERE hist.job_id = j.job_id AND hist.run_date > CONVERT(int, CONVERT(varchar(1000), DATEADD(MONTH, -1, GETDATE()), 112)))
 ) AS counts
 CROSS APPLY
 (
@@ -59,7 +67,7 @@ CROSS APPLY
 	UNION ALL
 	SELECT Issue = N'Owner not sa'
 	, RemediationCmd = N'EXEC msdb.dbo.sp_update_job @job_name=N' + QUOTENAME(j.name, N'''') + ', @owner_login_name = N' + QUOTENAME(SUSER_SNAME(0x01), N'''') + N';'
-	WHERE j.owner_sid <> 0x01
+	WHERE j.owner_sid NOT IN (0x01, SUSER_SID(@serviceAccount))
 ) AS issues
 WHERE j.date_created < DATEADD(MINUTE, -15, GETDATE()) -- allow grace period for newly created jobs
 ORDER BY j.name
