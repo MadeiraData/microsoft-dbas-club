@@ -205,11 +205,31 @@ This section was partly adapted from the sp_GetDDL script by Lowell Izaguirre: h
 IF OBJECT_ID(N''%s'') IS NULL
 BEGIN',0,1,@NewTableName,@NewTableName) WITH NOWAIT;
 
+DECLARE @PKtype NVARCHAR(MAX), @PKisIdentity BIT, @AllColumnsList NVARCHAR(MAX), @AllColumnsUpdateSet NVARCHAR(MAX)
+
 SET @CMD = N'
 	CREATE TABLE ' + @NewTableName + N' ( '
+	
+SELECT
+     @CMD = @CMD + ColumnDefinition + ','
+-- 2. Parse PK columns (for join and update expressions and various column lists)
+	,@PKcolumnDefinitions = CASE WHEN c.is_pk = 1 THEN ISNULL(@PKcolumnDefinitions + N', ', N'') + c.ColumnDefinition ELSE @PKcolumnDefinitions END
+	,@PKjoin = CASE WHEN c.is_pk = 1 THEN ISNULL(@PKjoin + N'
+	AND ', N'') + N'Trgt.' + QUOTENAME(c.name) COLLATE database_default + N' = Src.' + QUOTENAME(c.name) COLLATE database_default
+		ELSE @PKjoin END
+	,@PKcolumnCount = CASE WHEN c.is_pk = 1 THEN ISNULL(@PKcolumnCount,0) + 1 ELSE @PKcolumnCount END
+	,@AllColumnsList = CASE WHEN c.is_computed = 0 THEN ISNULL(@AllColumnsList + N', ', N'') + QUOTENAME(c.name) COLLATE database_default ELSE @AllColumnsList END
+	,@AllColumnsUpdateSet  = CASE WHEN ISNULL(c.is_pk,0) = 0 AND c.is_computed = 0 THEN ISNULL(@AllColumnsUpdateSet  + N',
+	', N'') + QUOTENAME(c.name) COLLATE database_default + N' = Src.' + QUOTENAME(c.name) COLLATE database_default
+		ELSE @AllColumnsUpdateSet END
+FROM
+(
   SELECT
-    @CMD = @CMD
-    + CASE
+	[COLS].[column_id],
+    [COLS].[name],
+	[COLS].[is_computed],
+	pk.is_pk,
+    ColumnDefinition = CASE
         WHEN [COLS].[is_computed] = 1
         THEN @vbCrLf
              + QUOTENAME([COLS].[name])
@@ -245,12 +265,6 @@ SET @CMD = N'
                                + CONVERT(VARCHAR,ISNULL(IDENT_INCR(@SourceTableName),1) )
                                + ')'
                         END
-                    + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                    + CASE
-                        WHEN [COLS].[is_nullable] = 0
-                        THEN ' NOT NULL'
-                        ELSE '     NULL'
-                      END
 -- data types with scale  IE datetime2(7),TIME(7)
                WHEN TYPE_NAME([COLS].[user_type_id]) IN ('datetime2','datetimeoffset','time')
                THEN CASE 
@@ -263,12 +277,6 @@ SET @CMD = N'
                     END
                     + SPACE(4)
                     + '        '
-                    + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                    + CASE
-                        WHEN [COLS].[is_nullable] = 0
-                        THEN ' NOT NULL'
-                        ELSE '     NULL'
-                      END
 
 --data types with no/precision/scale,IE  FLOAT
                WHEN  TYPE_NAME([COLS].[user_type_id]) IN ('float') --,'real')
@@ -277,108 +285,39 @@ SET @CMD = N'
                     CASE
                       WHEN [COLS].[precision] = 53
                       THEN SPACE(11 - LEN(CONVERT(VARCHAR,[COLS].[precision])))
-                           + SPACE(7)
-                           + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                           + CASE
-                               WHEN [COLS].[is_nullable] = 0
-                               THEN ' NOT NULL'
-                               ELSE '     NULL'
-                             END
                       ELSE '('
                            + CONVERT(VARCHAR,[COLS].[precision])
                            + ') '
                            + SPACE(6 - LEN(CONVERT(VARCHAR,[COLS].[precision])))
-                           + SPACE(7)
-                           + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                           + CASE
-                               WHEN [COLS].[is_nullable] = 0
-                               THEN ' NOT NULL'
-                               ELSE '     NULL'
-                             END
                       END
+                      + SPACE(7)
                WHEN  TYPE_NAME([COLS].[user_type_id]) IN ('char','varchar','binary','varbinary')
                THEN CASE
                       WHEN  [COLS].[max_length] = -1
                       THEN  '(max)'
                             + SPACE(6 - LEN(CONVERT(VARCHAR,[COLS].[max_length])))
-                            + SPACE(7)
-                            ----collate to comment out when not desired
-                            --+ CASE
-                            --    WHEN COLS.collation_name IS NULL
-                            --    THEN ''
-                            --    ELSE ' COLLATE ' + COLS.collation_name
-                            --  END
-                            + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                            + CASE
-                                WHEN [COLS].[is_nullable] = 0
-                                THEN ' NOT NULL'
-                                ELSE '     NULL'
-                              END
                       ELSE '('
                            + CONVERT(VARCHAR,[COLS].[max_length])
                            + ') '
                            + SPACE(6 - LEN(CONVERT(VARCHAR,[COLS].[max_length])))
-                           + SPACE(7)
-                           ----collate to comment out when not desired
-                           --+ CASE
-                           --     WHEN COLS.collation_name IS NULL
-                           --     THEN ''
-                           --     ELSE ' COLLATE ' + COLS.collation_name
-                           --   END
-                           + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                           + CASE
-                               WHEN [COLS].[is_nullable] = 0
-                               THEN ' NOT NULL'
-                               ELSE '     NULL'
-                             END
                     END
+                    + SPACE(7)
 --data type with max_length ( BUT DOUBLED) ie NCHAR(33), NVARCHAR(40)
                WHEN TYPE_NAME([COLS].[user_type_id]) IN ('nchar','nvarchar')
                THEN CASE
                       WHEN  [COLS].[max_length] = -1
                       THEN '(max)'
                            + SPACE(5 - LEN(CONVERT(VARCHAR,([COLS].[max_length] / 2))))
-                           + SPACE(7)
-                           ----collate to comment out when not desired
-                           --+ CASE
-                           --     WHEN COLS.collation_name IS NULL
-                           --     THEN ''
-                           --     ELSE ' COLLATE ' + COLS.collation_name
-                           --   END
-                           + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                           + CASE
-                               WHEN [COLS].[is_nullable] = 0
-                               THEN  ' NOT NULL'
-                               ELSE '     NULL'
-                             END
                       ELSE '('
                            + CONVERT(VARCHAR,([COLS].[max_length] / 2))
                            + ') '
                            + SPACE(6 - LEN(CONVERT(VARCHAR,([COLS].[max_length] / 2))))
-                           + SPACE(7)
-                           ----collate to comment out when not desired
-                           --+ CASE
-                           --     WHEN COLS.collation_name IS NULL
-                           --     THEN ''
-                           --     ELSE ' COLLATE ' + COLS.collation_name
-                           --   END
-                           + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                           + CASE
-                               WHEN [COLS].[is_nullable] = 0
-                               THEN ' NOT NULL'
-                               ELSE '     NULL'
-                             END
                     END
+                    + SPACE(7)
 
                WHEN TYPE_NAME([COLS].[user_type_id]) IN ('datetime','money','text','image','real')
                THEN SPACE(18 - LEN(TYPE_NAME([COLS].[user_type_id])))
                     + '              '
-                    + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                    + CASE
-                        WHEN [COLS].[is_nullable] = 0
-                        THEN ' NOT NULL'
-                        ELSE '     NULL'
-                      END
 
 --  other data type 	IE INT, DATETIME, MONEY, CUSTOM DATA TYPE,...
                ELSE 
@@ -392,21 +331,40 @@ SET @CMD = N'
                                      + ')'
                               END
                             + SPACE(2)
-                            + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
-                            + CASE
-                                WHEN [COLS].[is_nullable] = 0
-                                THEN ' NOT NULL'
-                                ELSE '     NULL'
-                              END
                END
+                --collation
+                + CASE
+                    WHEN COLS.collation_name IS NULL
+                    THEN ''
+                    ELSE ' COLLATE ' + COLS.collation_name
+                    END
+                + CASE  WHEN [COLS].[is_sparse] = 1 THEN ' sparse' ELSE '       ' END
+                + CASE
+                    WHEN [COLS].[is_nullable] = 0
+                    THEN ' NOT NULL'
+                    ELSE '     NULL'
+                    END
       END --iscomputed
-    + ','
+    --+ ','
     FROM [sys].[columns] [COLS]
       LEFT OUTER JOIN [sys].[computed_columns] [CALC]
          ON  [COLS].[object_id] = [CALC].[object_id]
          AND [COLS].[column_id] = [CALC].[column_id]
+	  OUTER APPLY
+	  (
+		SELECT 1 is_pk
+		FROM sys.indexes AS pk
+		INNER JOIN sys.index_columns AS ic 
+		ON ic.is_included_column = 0 
+		AND ic.object_id = pk.object_id 
+		AND ic.index_id = pk.index_id 
+		WHERE ic.column_id = [COLS].column_id
+		AND pk.object_id = @SourceTableID
+		AND pk.name = @CustomPKReplacementIndex
+	  ) AS pk
     WHERE [COLS].[object_id]=@SourceTableID
-    ORDER BY [COLS].[column_id];
+) AS c
+ORDER BY c.[column_id]
 	
 	
   SET @CMD = SUBSTRING(@CMD,1,LEN(@CMD) -1) ;
@@ -435,7 +393,7 @@ EXEC sp_rename N''' + @SourceTableName + N'.' + pk.name COLLATE database_default
 	ALTER TABLE ' + @NewTableName + N' ADD CONSTRAINT ' + QUOTENAME(df.name + @NewTableNamePostfix) COLLATE database_default + N' DEFAULT ' + df.definition COLLATE database_default + N' FOR ' + QUOTENAME(c.name) COLLATE database_default + N';'
 	,
 	@RenameCommands = ISNULL(@RenameCommands, N'') + N'
-EXEC sp_rename N''' + @SourceTableName + N'.' + df.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + df.name COLLATE database_default + N''';'
+EXEC sp_rename N''' + OBJECT_SCHEMA_NAME(@SourceTableID) + N'.' + df.name COLLATE database_default + @NewTableNamePostfix + N''', N''' + df.name COLLATE database_default + N''';'
 	FROM sys.default_constraints AS df
 	INNER JOIN sys.columns AS c
 	ON df.parent_object_id = c.object_id
@@ -448,28 +406,6 @@ RAISERROR(N'
 END
 ELSE
 	RAISERROR(N''NEW table already exists!'',0,1) WITH NOWAIT;',0,1,@NewTableName) WITH NOWAIT;
-
-
--- 2. Parse PK columns (for join and update expressions and various column lists)
-SELECT
-	 @PKcolumnDefinitions = ISNULL(@PKcolumnDefinitions + N', ', N'') + QUOTENAME(c.name) COLLATE database_default + N' ' + t.name + N' ' + CASE c.is_nullable WHEN 1 THEN 'NULL' ELSE 'NOT NULL' END
-	,@PKjoin = ISNULL(@PKjoin + N'
-	AND ', N'') + N'Trgt.' + QUOTENAME(c.name) COLLATE database_default + N' = Src.' + QUOTENAME(c.name) COLLATE database_default
-	,@PKcolumnCount = ISNULL(@PKcolumnCount,0) + 1
-FROM sys.indexes AS pk
-INNER JOIN sys.index_columns AS ic 
-ON ic.is_included_column = 0 
-AND ic.object_id = pk.object_id 
-AND ic.index_id = pk.index_id 
-INNER JOIN sys.columns AS c 
-ON ic.object_id = c.object_id 
-AND ic.column_id = c.column_id
-INNER JOIN sys.types AS t
-ON c.system_type_id = t.system_type_id
-AND c.user_type_id = t.user_type_id 
-WHERE pk.object_id = @SourceTableID
-AND pk.name = @CustomPKReplacementIndex
-ORDER BY ic.key_ordinal ASC 
 
 
 -- 3. Create empty table DELTA
@@ -577,21 +513,6 @@ PRINT 'GO'
 
 
 -- 5. Initial migration from source table to NEW table, by chunks
-DECLARE @PKtype NVARCHAR(MAX), @PKisIdentity BIT, @AllColumnsList NVARCHAR(MAX), @AllColumnsUpdateSet NVARCHAR(MAX)
-
-SELECT @AllColumnsList = ISNULL(@AllColumnsList + N', ', N'') + QUOTENAME(c.name) COLLATE database_default
-, @AllColumnsUpdateSet  = CASE WHEN ispk.cnt = 0 THEN ISNULL(@AllColumnsUpdateSet  + N',
-	', N'') + QUOTENAME(c.name) COLLATE database_default + N' = Src.' + QUOTENAME(c.name) COLLATE database_default
-	ELSE @AllColumnsUpdateSet END
-FROM sys.columns AS c
-OUTER APPLY
-(
-	SELECT cnt = COUNT(*) FROM sys.indexes AS pk INNER JOIN sys.index_columns AS ic ON pk.object_id = ic.object_id AND pk.index_id = ic.index_id
-	WHERE pk.object_id = c.object_id AND ic.column_id = c.column_id
-	AND pk.name = @CustomPKReplacementIndex
-) AS ispk
-WHERE c.object_id = @SourceTableID
-AND c.is_computed = 0
 
 -- If only 1 column in PK
 IF @PKcolumnCount = 1
@@ -713,7 +634,7 @@ RAISERROR(N''Starting to copy data into ' + @NewTableName + N'. %d permutations 
 
 DECLARE ' + @PK2variableDefinitions + N'
 
-DECLARE Chunks CURSOR LOCAL FAST_FORWARD FOR
+DECLARE Chunks CURSOR LOCAL STATIC READ_ONLY FORWARD_ONLY FOR
 SELECT ' + @PK2columnList + N' FROM @Chunks
 
 OPEN Chunks
@@ -722,8 +643,9 @@ FETCH NEXT FROM Chunks INTO ' + @PK2variableList + N'
 WHILE @@FETCH_STATUS = 0
 BEGIN
 	INSERT INTO ' + @NewTableName + N'
+	(' + @AllColumnsList + N')
 	SELECT
-	 *
+	 ' + @AllColumnsList + N'
 	FROM ' + @SourceTableName + CASE WHEN @CopyUsingNoLock = 1 THEN N' WITH(NOLOCK)' ELSE N'' END + N'
 	WHERE ' + @PK2variableJoin + N'
 
