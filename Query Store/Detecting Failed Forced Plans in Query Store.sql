@@ -61,7 +61,17 @@ FETCH NEXT FROM db_cursor INTO @database_name;
 WHILE @@FETCH_STATUS = 0
 BEGIN
 	BEGIN TRY
-		SET @sql = '
+
+	SET @sql = CONCAT(
+						CASE	
+							WHEN 	CAST (SERVERPROPERTY('EngineEdition') AS NVARCHAR(128)) BETWEEN 1 AND 4	-- SQL Server
+									OR CAST (SERVERPROPERTY('EngineEdition') AS NVARCHAR(128)) = 8				-- Azure SQL Managed Instance
+								THEN CONCAT('USE ', QUOTENAME (@database_name), '; ')
+							WHEN 	CAST (SERVERPROPERTY('EngineEdition') AS NVARCHAR(128)) = 5				-- Azure SQL Database
+								THEN ''
+			END,
+			'
+
 			SELECT 
 				''' + @database_name + ''',
 				qsqp.query_id,
@@ -70,15 +80,15 @@ BEGIN
 				qsqt.query_sql_text,
 				qsqp.force_failure_count
 			FROM 
-				' + QUOTENAME(@database_name) + '.sys.query_store_plan AS qsqp
-				LEFT JOIN ' + QUOTENAME(@database_name) + '.sys.query_store_query AS qsq ON qsqp.query_id = qsq.query_id
-				LEFT JOIN ' + QUOTENAME(@database_name) + '.sys.query_store_query_text AS qsqt ON qsq.query_text_id = qsqt.query_text_id
+				sys.query_store_plan AS qsqp
+				LEFT JOIN sys.query_store_query AS qsq ON qsqp.query_id = qsq.query_id
+				LEFT JOIN sys.query_store_query_text AS qsqt ON qsq.query_text_id = qsqt.query_text_id
 			WHERE 
 				qsqp.is_forced_plan = 1
 				AND qsqp.force_failure_count > 0
 				AND qsqp.last_force_failure_reason_desc = ''GENERAL_FAILURE''
 			OPTION (RECOMPILE);
-		';
+		');
 
 		IF @WhatIf != 0
 		BEGIN
