@@ -5,18 +5,18 @@ DECLARE @ProcedureName NVARCHAR(128) = 'YourStoredProcedureName'; -- change as n
 
 -- Retrieve query plan stats from the plan cache based on object_id
 SELECT 
-    cp.plan_handle,
-    qp.query_plan,
+	cp.plan_handle,
+	qp.query_plan,
 	OBJECT_SCHEMA_NAME(st.objectid) AS SchemaName,
 	OBJECT_NAME(st.objectid) AS ObjectName,
 	DB_NAME(st.dbid) AS DatabaseName,
-    st.text AS [SQLBatchText],
+	st.text AS [SQLBatchText],
 	LTRIM(SUBSTRING(st.text, (qs.statement_start_offset / 2) + 1, 
 		(CASE qs.statement_end_offset 
 		WHEN -1 THEN DATALENGTH(st.text) 
 		ELSE qs.statement_end_offset 
 		END - qs.statement_start_offset) / 2 + 1)) AS [Statement],
-    qs.*
+	qs.*
 FROM 
     sys.dm_exec_cached_plans AS cp
 CROSS APPLY 
