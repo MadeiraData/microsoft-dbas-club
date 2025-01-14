@@ -32,15 +32,16 @@ FailedSteps AS
 (
     SELECT
         j.name AS job_name,
-        h.step_id,
-        h.step_name,
+        js.step_id,
+        js.step_name,
         h.run_date,
         h.run_time,
         h.run_duration,
-        h.message
+        h.[message]
     FROM
-        sysjobhistory h
-		INNER JOIN sysjobs j ON h.job_id = j.job_id
+        msdb.dbo.sysjobhistory h
+		INNER JOIN msdb.dbo.sysjobs j ON h.job_id = j.job_id
+		LEFT JOIN msdb.dbo.sysjobsteps AS js ON j.job_id = js.job_id
 		INNER JOIN RecentJobExecutions r ON h.instance_id = r.instance_id
     WHERE
         h.run_status = 0 -- Step failure
@@ -50,8 +51,7 @@ SELECT
     job_name,
     step_id,
     step_name,
-    run_date,
-    run_time,
+	msdb.dbo.agent_datetime([run_date],[run_time]) AS run_datetime,
     run_duration,
     [message]
 FROM
