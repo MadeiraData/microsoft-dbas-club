@@ -142,8 +142,16 @@ SELECT
 			+ N', PAD_INDEX = '			+ CASE pk.is_padded			WHEN 1 THEN N'ON' ELSE N'OFF' END
 	+ N') 
 	ON ' + QUOTENAME(ds.name) COLLATE database_default
+	+ ISNULL(N'(' + QUOTENAME(partitionCol.[name]) COLLATE database_default + N')', N'')
 FROM sys.indexes AS pk
 INNER JOIN sys.data_spaces AS ds ON pk.data_space_id = ds.data_space_id 
+OUTER APPLY
+(
+	SELECT c.[name]
+	FROM sys.index_columns AS ic
+	INNER JOIN sys.columns AS c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+	WHERE ic.object_id = pk.object_id AND ic.index_id = pk.index_id AND ic.partition_ordinal > 0
+) AS partitionCol
 WHERE object_id = @SourceTableID
 AND (
 	(
@@ -711,9 +719,17 @@ RAISERROR(N'
 			+ N', IGNORE_DUP_KEY = ' + CASE i.ignore_dup_key WHEN 1 THEN 'ON' ELSE 'OFF' END
 			+ N', PAD_INDEX = ' + CASE i.is_padded WHEN 1 THEN 'ON' ELSE 'OFF' END
 	+ N')
-	ON ' + QUOTENAME(ds.name) COLLATE database_default + N';'
+	ON ' + QUOTENAME(ds.name) COLLATE database_default
+	+ ISNULL(N'(' + QUOTENAME(partitionCol.[name]) + N')', N'') + N';'
 	FROM sys.indexes AS i
 	INNER JOIN sys.data_spaces AS ds ON i.data_space_id = ds.data_space_id 
+	OUTER APPLY
+	(
+		SELECT c.[name]
+		FROM sys.index_columns AS ic
+		INNER JOIN sys.columns AS c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+		WHERE ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.partition_ordinal > 0
+	) AS partitionCol
 	WHERE object_id = @SourceTableID
 	AND i.name <> @CustomPKReplacementIndex
 	AND i.index_id > 1 -- nonclustered
@@ -920,8 +936,8 @@ SELECT
   DISTINCT
   --FK must be added AFTER the PK/unique constraints are added back.
   850 AS [ExecutionOrder],
-  'IF EXISTS (select * from sys.foreign_keys WHERE parent_object_id = OBJECT_ID(''' + @SourceTableName + N''') AND name = ''' + conz.name + N''')
-   ALTER TABLE ' + @SourceTableName + N' DROP CONSTRAINT ' + QUOTENAME([conz].[name]) + N';' 
+  'IF EXISTS (select * from sys.foreign_keys WHERE parent_object_id = OBJECT_ID(''' + @OldTableName + N''') AND name = ''' + conz.name + N''')
+   ALTER TABLE ' + @OldTableName + N' DROP CONSTRAINT ' + QUOTENAME([conz].[name]) + N';' 
   + @vbCrLf
   + N'ALTER TABLE ' + @SourceTableName + N' ADD CONSTRAINT ' + QUOTENAME([conz].[name]) 
   + ' FOREIGN KEY (' 
@@ -968,7 +984,7 @@ SELECT
                            AND [fkcolz].[constraint_object_id] = [conz].[object_id]
                          ORDER  BY
                         [fkcolz].[constraint_column_id]
-                      FOR XML PATH(''), TYPE).[value]('.','varchar(max)'),1,1,'')
+                      FOR XML PATH(''), TYPE).[value]('.','nvarchar(max)'),1,1,'')
 FROM   [sys].[foreign_keys] [conz]
       INNER JOIN [sys].[foreign_key_columns] [colz]
         ON [conz].[object_id] = [colz].[constraint_object_id]
@@ -991,7 +1007,7 @@ GROUP  BY
                                             WHERE  [fkcolz].[referenced_object_id] = [conz].[referenced_object_id]
                                               AND [fkcolz].[constraint_object_id] = [conz].[object_id]
                                             ORDER BY [fkcolz].[constraint_column_id]
-                                            FOR XML PATH(''), TYPE).[value]('.','varchar(max)'),1,1,'')
+                                            FOR XML PATH(''), TYPE).[value]('.','nvarchar(max)'),1,1,'')
                    FROM   [sys].[foreign_keys] [conz]
                           INNER JOIN [sys].[foreign_key_columns] [colz]
                             ON [conz].[object_id] = [colz].[constraint_object_id]
