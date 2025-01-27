@@ -170,7 +170,7 @@ WHEN SUSER_ID(l.LoginName) IS NOT NULL THEN
 	N'USE ' + QUOTENAME(DBName) + N'; ALTER USER ' + QUOTENAME(UserName) + N' WITH LOGIN = ' + QUOTENAME(l.LoginName) + N'; -- existing login found with the same name'
 WHEN @CreateWindowsAccountsWhenPossible = 1 AND LoginExists = 0 AND SUSER_SID(l.LoginName) IS NOT NULL  THEN
 	N'CREATE LOGIN ' + QUOTENAME( l.LoginName ) + ' FROM WINDOWS WITH DEFAULT_DATABASE = [master]; -- trying to recreate a Windows account'
-WHEN @CreateSQLLoginsWhenNotExists = 1 AND LoginExists = 0 THEN
+WHEN l.LoginName NOT LIKE '%\%' AND @CreateSQLLoginsWhenNotExists = 1 AND LoginExists = 0 THEN
 	N'CREATE LOGIN ' + QUOTENAME( l.LoginName ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = '
 	+ ISNULL(CONVERT(nvarchar(max), CAST( LOGINPROPERTY( l.LoginName, 'PasswordHash' ) AS varbinary (max)), 1) + ' HASHED', N'N''change_me''')
 	+ N', SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(CONVERT(sysname, LOGINPROPERTY( l.LoginName, 'DefaultDatabase')), DB_NAME()) )
