@@ -1,15 +1,16 @@
 /*
 Author: Eitan Blumin | https://eitanblumin.com | https://madeiradata.com
 Date Created: 2018-01-02
-Last Update: 2024-05-23
+Last Update: 2025-01-27
 Description:
 	Fix All Orphaned Users Within Current Database, or all databases in the instance.
-	Handles 3 possible use-cases:
+	Handles these possible use-cases:
 	1. Login with same name as user exists - generate ALTER LOGIN to map the user to the login.
 	2. Login with a different name but the same sid exists - generate ALTER LOGIN to map the user to the login.
 	3. Login SID is identifiable but login doesn't exist in SQL - generate CREATE LOGIN FROM WINDOWS to create a Windows authentication login.
-	4. No login with same name exists - generate DROP USER to delete the orphan user.
+	4. No login with same name exists and @CreateSQLLoginsWhenNotExists is enabled - generate CREATE LOGIN to create a SQL login with the same SID.
 	5. Orphan user is [dbo] - change the database owner to SA (or whatever SA was renamed to)
+	6. Else, No login with same name exists - generate DROP USER to delete the orphan user.
 
 Remarks:
 	- The script tries to detect automatically whether a user is a member of a Windows Group.
@@ -25,6 +26,7 @@ DECLARE
 	 ,  @DropEmptyOwnedSchemas				bit	= 1			-- Set to 1 to drop schemas without objects if an orphan user owns them. Otherwise, change their owner to [dbo]. Not relevant if user is dbo.
 	 ,  @DropOwnedObjects					bit	= 1			-- Set to 1 to drop objects if an orphan user owns them. Otherwise, change their schema to [dbo]. Not relevant if user is dbo.
 	 ,  @CreateWindowsAccountsWhenPossible	bit = 1			-- Set to 1 to generate a CREATE LOGIN ... FROM WINDOWS command when the login SID is identifiable.
+	 ,  @CreateSQLLoginsWhenNotExists		bit = 0			-- Set to 1 to generate a CREATE LOGIN ... WITH SID = ... command when the SQL login doesn't exist.
 
 SET NOCOUNT ON;
 
@@ -168,6 +170,13 @@ WHEN SUSER_ID(l.LoginName) IS NOT NULL THEN
 	N'USE ' + QUOTENAME(DBName) + N'; ALTER USER ' + QUOTENAME(UserName) + N' WITH LOGIN = ' + QUOTENAME(l.LoginName) + N'; -- existing login found with the same name'
 WHEN @CreateWindowsAccountsWhenPossible = 1 AND LoginExists = 0 AND SUSER_SID(l.LoginName) IS NOT NULL  THEN
 	N'CREATE LOGIN ' + QUOTENAME( l.LoginName ) + ' FROM WINDOWS WITH DEFAULT_DATABASE = [master]; -- trying to recreate a Windows account'
+WHEN @CreateSQLLoginsWhenNotExists = 1 AND LoginExists = 0 THEN
+	N'CREATE LOGIN ' + QUOTENAME( l.LoginName ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = '
+	+ ISNULL(CONVERT(nvarchar(max), CAST( LOGINPROPERTY( l.LoginName, 'PasswordHash' ) AS varbinary (max)), 1) + ' HASHED', N'N''change_me''')
+	+ N', SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(CONVERT(sysname, LOGINPROPERTY( l.LoginName, 'DefaultDatabase')), DB_NAME()) )
+   + N', CHECK_POLICY = ' + CASE WHEN CAST(LOGINPROPERTY( l.LoginName, 'HistoryLength' ) AS int) <> 0 THEN N'ON' ELSE N'OFF' END
+   + N', CHECK_EXPIRATION = ' + CASE WHEN LOGINPROPERTY( l.LoginName, 'DaysUntilExpiration' ) IS NOT NULL THEN N'ON' ELSE N'OFF' END
+   + N'; -- try to recreate a SQL login'
 WHEN LoginExists = 0 THEN
 	N'USE ' + QUOTENAME(DBName) + N'; '
 		+ ISNULL(OwnedObjects, N'') + ISNULL(OwnedSchemas, N'')
