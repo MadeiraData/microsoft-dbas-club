@@ -191,6 +191,7 @@ BEGIN
 	WHERE database_id > 4 
 	AND state_desc = 'ONLINE'
 	AND DATABASEPROPERTYEX(name, 'Updateability') = 'READ_WRITE'
+	AND HAS_DBACCESS([name]) = 1
 
 	OPEN DBs
 	FETCH NEXT FROM DBs INTO @CurrDB
