@@ -27,6 +27,7 @@ DECLARE
 	 ,  @DropOwnedObjects					bit	= 1			-- Set to 1 to drop objects if an orphan user owns them. Otherwise, change their schema to [dbo]. Not relevant if user is dbo.
 	 ,  @CreateWindowsAccountsWhenPossible	bit = 1			-- Set to 1 to generate a CREATE LOGIN ... FROM WINDOWS command when the login SID is identifiable.
 	 ,  @CreateSQLLoginsWhenNotExists		bit = 0			-- Set to 1 to generate a CREATE LOGIN ... WITH SID = ... command when the SQL login doesn't exist.
+	 ,  @AllowMapToExistingSysadmin			bit = 1			-- Set to 1 to allow mapping to an existing login even if they're a sysadmin (otherwise, drop the user since it's redundant)
 
 SET NOCOUNT ON;
 
@@ -166,18 +167,18 @@ CASE WHEN UserName = 'dbo' THEN
 	+ CASE WHEN LoginExists = 1 THEN N' CREATE USER ' + QUOTENAME(UserName) + N' WITH LOGIN = ' + QUOTENAME(UserName) + N'; ALTER ROLE [db_owner] ADD USER ' + QUOTENAME(UserName) + N';'
 	ELSE N'' END
 	+ N'-- assign orphaned [dbo] to [sa]'
-WHEN SUSER_ID(l.LoginName) IS NOT NULL THEN
+WHEN SUSER_ID(l.LoginName) IS NOT NULL AND (IS_SRVROLEMEMBER(l.LoginName,'sysadmin') = 0 OR @AllowMapToExistingSysadmin = 1) THEN
 	N'USE ' + QUOTENAME(DBName) + N'; ALTER USER ' + QUOTENAME(UserName) + N' WITH LOGIN = ' + QUOTENAME(l.LoginName) + N'; -- existing login found with the same name'
-WHEN @CreateWindowsAccountsWhenPossible = 1 AND LoginExists = 0 AND SUSER_SID(l.LoginName) IS NOT NULL  THEN
+WHEN SUSER_ID(l.LoginName) IS NULL AND @CreateWindowsAccountsWhenPossible = 1 AND LoginExists = 0 AND SUSER_SID(l.LoginName) IS NOT NULL  THEN
 	N'CREATE LOGIN ' + QUOTENAME( l.LoginName ) + ' FROM WINDOWS WITH DEFAULT_DATABASE = [master]; -- trying to recreate a Windows account'
-WHEN l.LoginName NOT LIKE '%\%' AND @CreateSQLLoginsWhenNotExists = 1 AND LoginExists = 0 THEN
+WHEN SUSER_ID(l.LoginName) IS NULL AND l.LoginName NOT LIKE '%\%' AND @CreateSQLLoginsWhenNotExists = 1 AND LoginExists = 0 THEN
 	N'CREATE LOGIN ' + QUOTENAME( l.LoginName ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = '
 	+ ISNULL(CONVERT(nvarchar(max), CAST( LOGINPROPERTY( l.LoginName, 'PasswordHash' ) AS varbinary (max)), 1) + ' HASHED', N'N''change_me''')
 	+ N', SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(CONVERT(sysname, LOGINPROPERTY( l.LoginName, 'DefaultDatabase')), DB_NAME()) )
    + N', CHECK_POLICY = ' + CASE WHEN CAST(LOGINPROPERTY( l.LoginName, 'HistoryLength' ) AS int) <> 0 THEN N'ON' ELSE N'OFF' END
    + N', CHECK_EXPIRATION = ' + CASE WHEN LOGINPROPERTY( l.LoginName, 'DaysUntilExpiration' ) IS NOT NULL THEN N'ON' ELSE N'OFF' END
    + N'; -- try to recreate a SQL login'
-WHEN LoginExists = 0 THEN
+WHEN SUSER_ID(l.LoginName) IS NULL AND LoginExists = 0 THEN
 	N'USE ' + QUOTENAME(DBName) + N'; '
 		+ ISNULL(OwnedObjects, N'') + ISNULL(OwnedSchemas, N'')
 		+ N' DROP USER ' + QUOTENAME(UserName) + N'; -- no existing login found'
