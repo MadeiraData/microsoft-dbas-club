@@ -9,8 +9,8 @@ acc.name,
 el.description as err_desc,
 el.log_date as err_date
 from msdb.dbo.sysmail_event_log el
-left join msdb.dbo.sysmail_account acc
-ON acc.account_id = el.account_id
+inner join msdb.dbo.sysmail_faileditems as fi ON el.mailitem_id = fi.mailitem_id
+left join msdb.dbo.sysmail_account acc ON acc.account_id = el.account_id
 WHERE el.event_type='error'
 and el.log_date > DATEADD(HOUR,-2,GETDATE())
 
