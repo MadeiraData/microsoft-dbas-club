@@ -40,5 +40,7 @@ SELECT
  , FORMAT(PercentComplete, '#,0.00'), N'% (', FORMAT(AllocatedMB, '#,0.00'), N' MB allocated) since ', CONVERT(nvarchar(19), PausedTime, 120)
  , ISNULL(N' time left till automatic abort: ' + CONVERT(nvarchar, TimeToAutoAbort) + N' minutes', N'')
  ),
- PauseDurationMinutes = DATEDIFF(minute, PausedTime, CURRENT_TIMESTAMP)
+ PauseDurationMinutes = DATEDIFF(minute, PausedTime, CURRENT_TIMESTAMP),
+ ResumeCmd = 'USE ' + QUOTENAME(DBName) + N'; ALTER INDEX ' + QUOTENAME(IndexName) + N' ON ' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N' RESUME;',
+ AbortCmd  = 'USE ' + QUOTENAME(DBName) + N'; ALTER INDEX ' + QUOTENAME(IndexName) + N' ON ' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N' ABORT;'
 FROM @Results
