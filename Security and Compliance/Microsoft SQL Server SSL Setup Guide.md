@@ -132,24 +132,24 @@ To undo the SSL setting in client machines:
 
 # Troubleshooting
 
-After you successfully install the certificate, the certificate does not appear in the ** Certificate**  list on the ** Certificate**  tab.
+After you successfully install the certificate, the certificate does not appear in the **Certificate**  list on the **Certificate** tab.
 
-**Note: ** The ** Certificate ** tab is in the ** Protocols for {InstanceName} Properties ** dialog box that is opened from SQL Server Configuration Manager.
+**Note:** The **Certificate** tab is in the **Protocols for {InstanceName} Properties** dialog box that is opened from SQL Server Configuration Manager.
 
- This issue occurs because you may have installed an invalid certificate. If the certificate is invalid, it will not be listed on the ** Certificate ** tab. To determine whether the certificate that you installed is valid, follow these steps:
+ This issue occurs because you may have installed an invalid certificate. If the certificate is invalid, it will not be listed on the **Certificate** tab. To determine whether the certificate that you installed is valid, follow these steps:
 
   1. Open the **Certificates** snap-in. To do this, see step 1 in the "How to Configure the MMC Snap-in" section.
   2. In the **Certificates** snap-in, expand **Personal** , and then expand Certificates.
   3. In the right pane, locate the certificate that you installed.
   4. Determine whether the certificate meets the following requirements:
-    - In the right pane, the value in the ** Intended Purpose ** column for this certificate must be  **Server Authentication.**
-    - In the right pane, the value in the  **Issued To ** column must be the server name.
+    - In the right pane, the value in the **Intended Purpose** column for this certificate must be  **Server Authentication.**
+    - In the right pane, the value in the  **Issued To** column must be the server name.
   5. Double-click the certificate, and then determine whether the certificate meets the following requirements:
-    - On the  **General ** tab, you receive the following message:
+    - On the  **General** tab, you receive the following message:
    You have a private key that corresponds to this certificate.
-    - On the ** Details ** tab, the value for the ** Subject ** field must be server name.
-    - The value for the ** Enhanced Key Usage**  field must be **Server Authentication ({number})**.
-    - On the  **Certification Path ** tab, the server name must appear under  **Certification path**.
+    - On the **Details** tab, the value for the **Subject** field must be server name.
+    - The value for the **Enhanced Key Usage**  field must be **Server Authentication ({number})**.
+    - On the  **Certification Path** tab, the server name must appear under  **Certification path**.
 
 If any one of these requirements is not met, the certificate is invalid.
 
