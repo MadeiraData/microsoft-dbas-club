@@ -312,7 +312,7 @@ Process
 
         $currResultItem.ComparedJobs | Where-Object { $_.SideIndicator -ne ">=" } | ForEach-Object {
             $diffJobName = $_.Name
-            $diffJob = $currResultItem.SecondaryReplicaJobs | Where-Object { $_.Name -eq $diffJobName }
+            $diffJob = $currResultItem.PrimaryReplicaJobs | Where-Object { $_.Name -eq $diffJobName }
             $outputsList[$serverKey] += $diffJob.CreateScript
             $outputsList[$serverKey] += [Environment]::NewLine + "GO" + [Environment]::NewLine
         }
