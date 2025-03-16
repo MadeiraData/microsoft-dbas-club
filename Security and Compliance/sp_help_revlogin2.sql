@@ -56,8 +56,8 @@ BEGIN
    + CHAR(13) + CHAR(10) + N'-- Login: ' + [name] + CHAR(13) + CHAR(10)
    + CASE WHEN type IN ( 'G', 'U')
      THEN N'CREATE LOGIN ' + QUOTENAME( login_name ) + CHAR(13) + CHAR(10) + ' FROM WINDOWS WITH DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(default_database_name, DB_NAME()) )
-     ELSE N'CREATE LOGIN ' + QUOTENAME( login_name ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = ' + CONVERT(nvarchar(max), CAST( LOGINPROPERTY( login_name, 'PasswordHash' ) AS varbinary (max)), 1)
-  	+ ' HASHED, SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(default_database_name, DB_NAME()) )
+     ELSE N'CREATE LOGIN ' + QUOTENAME( login_name ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = ' + ISNULL(CONVERT(nvarchar(max), CAST( LOGINPROPERTY( [name], 'PasswordHash' ) AS varbinary (max)), 1) + ' HASHED', '''change_me''')
+  	+ ', SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(default_database_name, DB_NAME()) )
    END
    + CASE WHEN CAST(LOGINPROPERTY( login_name, 'HistoryLength' ) AS int) <> 0 THEN N', CHECK_POLICY = ON' ELSE N'' END
    + CASE WHEN LOGINPROPERTY( login_name, 'DaysUntilExpiration' ) IS NOT NULL THEN N', CHECK_EXPIRATION = ON' ELSE N'' END
@@ -84,8 +84,8 @@ BEGIN
    + CHAR(13) + CHAR(10) + N'-- Login: ' + [name] + CHAR(13) + CHAR(10)
    + CASE WHEN type IN ( 'G', 'U')
      THEN N'CREATE LOGIN ' + QUOTENAME( login_name ) + CHAR(13) + CHAR(10) + ' FROM WINDOWS WITH DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(default_database_name, DB_NAME()) )
-     ELSE N'CREATE LOGIN ' + QUOTENAME( login_name ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = ' + CONVERT(nvarchar(max), dp.password_hash, 1)
-  	+ ' HASHED, SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(default_database_name, DB_NAME()) )
+     ELSE N'CREATE LOGIN ' + QUOTENAME( login_name ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = ' + ISNULL(CONVERT(nvarchar(max), dp.password_hash, 1) + ' HASHED', '''change_me''')
+  	+ ', SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(default_database_name, DB_NAME()) )
    END
    + CASE WHEN CAST(LOGINPROPERTY( login_name, 'HistoryLength' ) AS int) <> 0 THEN N', CHECK_POLICY = ON' ELSE N'' END
    + CASE WHEN LOGINPROPERTY( login_name, 'DaysUntilExpiration' ) IS NOT NULL THEN N', CHECK_EXPIRATION = ON' ELSE N'' END
@@ -115,8 +115,8 @@ BEGIN
    + N'-- Login: ' + [name] + CHAR(13) + CHAR(10)
    + CASE WHEN type IN ( 'G', 'U')
      THEN N'CREATE LOGIN ' + QUOTENAME( [name] ) + CHAR(13) + CHAR(10) + ' FROM WINDOWS WITH DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(CONVERT(sysname, LOGINPROPERTY( [name], 'DefaultDatabase')), DB_NAME()) )
-     ELSE N'CREATE LOGIN ' + QUOTENAME( [name] ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = ' + CONVERT(nvarchar(max), CAST( LOGINPROPERTY( [name], 'PasswordHash' ) AS varbinary (max)), 1)
-  	+ ' HASHED, SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(CONVERT(sysname, LOGINPROPERTY( [name], 'DefaultDatabase')), DB_NAME()) )
+     ELSE N'CREATE LOGIN ' + QUOTENAME( [name] ) + CHAR(13) + CHAR(10) + ' WITH PASSWORD = ' + ISNULL(CONVERT(nvarchar(max), CAST( LOGINPROPERTY( [name], 'PasswordHash' ) AS varbinary (max)), 1) + ' HASHED', '''change_me''')
+  	+ ', SID = ' +  CONVERT(nvarchar(max), [sid], 1) + CHAR(13) + CHAR(10) + ', DEFAULT_DATABASE = ' + QUOTENAME( ISNULL(CONVERT(sysname, LOGINPROPERTY( [name], 'DefaultDatabase')), DB_NAME()) )
    END
    + CASE WHEN CAST(LOGINPROPERTY( [name], 'HistoryLength' ) AS int) <> 0 THEN N', CHECK_POLICY = ON' ELSE N'' END
    + CASE WHEN LOGINPROPERTY( [name], 'DaysUntilExpiration' ) IS NOT NULL THEN N', CHECK_EXPIRATION = ON' ELSE N'' END
@@ -158,5 +158,5 @@ PRINT ISNULL(@command_separator, CHAR(13) + CHAR(10))
 GO
 
 
-EXEC #sp_help_revlogin2
+EXEC #sp_help_revlogin2 
 	-- @include_system_logins = 1
