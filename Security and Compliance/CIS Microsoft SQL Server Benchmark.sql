@@ -1,6 +1,6 @@
 /***************************************************************************************
 Script Name		CIS Microsoft SQL Server  Benchmark.sql 
-Author:			Dadid Itshak 
+Author:			David Itshak 
 
 
 Purpose :		
@@ -23,13 +23,13 @@ Date          	Who              What
 
 Source : 
 Center for Internet Security (CIS)  :  https://www.cisecurity.org/benchmark/microsoft_sql_server   
-•	Microsoft SQL Server 2022 (1.0.0)
-•	Microsoft SQL Server 2019 (1.3.0)
-•	Microsoft SQL Server 2017 (1.2.0)
-•	Microsoft SQL Server 2016 (1.3.0)
-•	Microsoft SQL Server 2014 (1.5.0)
-•	Microsoft SQL Server 2012 (1.6.0)
-•	Microsoft SQL Server 2012 Database Engine (1.0.0)
+â€¢	Microsoft SQL Server 2022 (1.0.0)
+â€¢	Microsoft SQL Server 2019 (1.3.0)
+â€¢	Microsoft SQL Server 2017 (1.2.0)
+â€¢	Microsoft SQL Server 2016 (1.3.0)
+â€¢	Microsoft SQL Server 2014 (1.5.0)
+â€¢	Microsoft SQL Server 2012 (1.6.0)
+â€¢	Microsoft SQL Server 2012 Database Engine (1.0.0)
 
 
 ***************************************************************************************/
@@ -58,7 +58,7 @@ This section contains recommendations related to installing and patching SQL Ser
 1.1 Ensure Latest SQL Server Service Packs and Hotfixes are Installed
 (Not Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 SQL Server patches contain program updates that fix security and product functionality
 issues found in the software. These patches can be installed with a hotfix which is a single
@@ -90,8 +90,8 @@ Identify the current version and patch level of your SQL Server instances and en
 contain the latest security fixes. Make sure to test these fixes in your test environments
 before updating production instances.
 The most recent SQL Server patches can be found here:
-• Hotfixes and Cumulative updates: http://blogs.msdn.com/b/sqlreleaseservices/
-• Service Packs: https://support.microsoft.com/en-us/kb/2958069
+â€¢ Hotfixes and Cumulative updates: http://blogs.msdn.com/b/sqlreleaseservices/
+â€¢ Service Packs: https://support.microsoft.com/en-us/kb/2958069
 Default Value:
 Service packs and patches are not installed by default.
 References:
@@ -106,7 +106,7 @@ SELECT '************************************************'
 /*
 1.2 Ensure Single-Function Member Servers are Used (Not Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 It is recommended that SQL Server software be installed on a dedicated server. This
 architectural consideration affords security flexibility in that the database server can be
@@ -148,7 +148,7 @@ SELECT '************************************************************************
 2.1 Ensure 'Ad Hoc Distributed Queries' Server Configuration Option is
 set to '0' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Enabling Ad Hoc Distributed Queries allows users to query data and execute statements on
 external data sources. This functionality should be disabled.
@@ -204,7 +204,7 @@ SELECT '**************************************************************'
 2.2 Ensure 'CLR Enabled' Server Configuration Option is set to '0'
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The clr enabled option specifies whether user assemblies can be run by SQL Server.
 Rationale:
@@ -264,7 +264,7 @@ SELECT '************************************************************************
 2.3 Ensure 'Cross DB Ownership Chaining' Server Configuration Option is
 set to '0' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The cross db ownership chaining option controls cross-database ownership chaining
 across all databases at the instance (or server) level.
@@ -323,7 +323,7 @@ SELECT '**********************************************************************'
 2.4 Ensure 'Database Mail XPs' Server Configuration Option is set to '0'
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The Database Mail XPs option controls the ability to generate and transmit email
 messages from SQL Server.
@@ -376,7 +376,7 @@ SELECT '************************************************************************
 2.5 Ensure 'Ole Automation Procedures' Server Configuration Option is
 set to '0' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The Ole Automation Procedures option controls whether OLE Automation objects can be
 instantiated within Transact-SQL batches. These are extended stored procedures that allow
@@ -429,7 +429,7 @@ SELECT '**********************************************************************'
 2.6 Ensure 'Remote Access' Server Configuration Option is set to '0'
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The remote access option controls the execution of local stored procedures on remote
 servers or remote stored procedures on local server.
@@ -479,7 +479,7 @@ SELECT '************************************************************************
 set to '0' (Scored)
 set to '0' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The remote admin connections option controls whether a client application on a remote
 computer can use the Dedicated Administrator Connection (DAC).
@@ -548,7 +548,7 @@ SELECT '************************************************************************
 2.8 Ensure 'Scan For Startup Procs' Server Configuration Option is set to
 '0' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The scan for startup procs option, if enabled, causes SQL Server to scan for and
 automatically run all stored procedures that are set to execute upon service startup.
@@ -605,7 +605,7 @@ SELECT '************************************************************************
 /*
 2.9 Ensure 'Trustworthy' Database Property is set to 'Off' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The TRUSTWORTHY database option allows database objects to access objects in other
 databases under certain circumstances.
@@ -660,7 +660,7 @@ SELECT '************************************************************************
 2.10 Ensure Unnecessary SQL Server Protocols are set to 'Disabled' (Not
 Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 SQL Server supports Shared Memory, Named Pipes, TCP/IP and VIA protocols. However,
 SQL Server should be configured to use the bare minimum required based on the
@@ -699,7 +699,7 @@ SELECT '************************************************************************
 /*
 2.11 Ensure SQL Server is configured to use non-standard ports (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 If enabled, the default SQL Server instance will be assigned a default port of TCP:1433 for
 TCP/IP communication. Administrators can also configure named instances to use
@@ -764,7 +764,7 @@ SELECT '************************************************************************
 2.12 Ensure 'Hide Instance' option is set to 'Yes' for Production SQL
 Server instances (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Non-clustered SQL Server instances within production environments should be designated
 as hidden to prevent advertisement by the SQL Server Browser service.
@@ -841,7 +841,7 @@ SELECT '*****************************************************'
 /*
 2.13 Ensure 'sa' Login Account is set to 'Disabled' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The sa account is a widely known and often widely used SQL Server account with sysadmin
 privileges. This is the original login created during installation and always has the
@@ -908,7 +908,7 @@ SELECT '*****************************************************'
 /*
 2.14 Ensure 'sa' Login Account has been renamed (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The sa account is a widely known and often widely used SQL Server login with sysadmin
 privileges. The sa login is the original login created during installation and always has
@@ -958,7 +958,7 @@ SELECT '*******************************************************************'
 2.15 Ensure 'xp_cmdshell' Server Configuration Option is set to '0'
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The xp_cmdshell option controls whether the xp_cmdshell extended stored procedure can
 be used by an authenticated SQL Server user to execute operating-system command shell
@@ -1016,7 +1016,7 @@ SELECT '*******************************************************************'
 /*
 2.16 Ensure 'AUTO_CLOSE OFF' is set on contained databases (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 AUTO_CLOSE determines if a given database is closed or not after a connection terminates. If
 enabled, subsequent connections to the given database will require the database to be
@@ -1065,7 +1065,7 @@ SELECT '**************************************************'
 /*
 2.17 Ensure no login exists with the name 'sa' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The sa login (e.g. principal) is a widely known and often widely used SQL Server account.
 Therefore, there should not be a login called sa when the original sa login (sid 0x01) has
@@ -1129,7 +1129,7 @@ authorization mechanisms.
 3.1 Ensure 'Server Authentication' Property is set to 'Windows
 Authentication Mode' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Uses Windows Authentication to validate attempted connections.
 Rationale:
@@ -1184,7 +1184,7 @@ SELECT '************************************************************************
 all SQL Server databases excluding the master, msdb and tempdb
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Remove the right of the guest user to connect to SQL Server databases, except for master,
 msdb, and tempdb.
@@ -1237,7 +1237,7 @@ SELECT '************************************************************************
 3.3 Ensure 'Orphaned Users' are Dropped From SQL Server Databases
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 A database user for which the corresponding SQL Server login is undefined or is incorrectly
 defined on a server instance cannot log in to the instance and is referred to as orphaned
@@ -1273,7 +1273,7 @@ SELECT '************************************************************************
 3.4 Ensure SQL Authentication is not used in contained databases
 (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Contained databases do not enforce password complexity rules for SQL Authenticated
 users.
@@ -1317,15 +1317,15 @@ long passwords on the system (longer than 14 characters).
 */
 
 
-SELECT '3.5 Ensure the SQL Server’s MSSQL Service Account is Not an Administrator '  
+SELECT '3.5 Ensure the SQL Serverâ€™s MSSQL Service Account is Not an Administrator '  
 SELECT '******************************************************************************'
 
 
 /*
-3.5 Ensure the SQL Server’s MSSQL Service Account is Not an
+3.5 Ensure the SQL Serverâ€™s MSSQL Service Account is Not an
 Administrator (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The service account and/or service SID used by the MSSQLSERVER service for a default
 instance or MSSQL$<InstanceName> service for a named instance should not be a member of
@@ -1349,7 +1349,7 @@ underlying permissions had been changed or if SQL Server Configuration Manager w
 not originally used to set the service account.
 Impact:
 The SQL Server Configuration Manager tool should always be used to change the SQL
-Server’s service account. This will ensure that the account has the necessary privileges. If
+Serverâ€™s service account. This will ensure that the account has the necessary privileges. If
 the service needs access to resources other than the standard Microsoft defined directories
 and registry, then additional permissions may need to be granted separately to those
 resources.
@@ -1367,15 +1367,15 @@ and monitor for anomalous behavior.
 
 
 
-SELECT 'Ensure the SQL Server’s SQLAgent Service Account is Not an Administrator'  
+SELECT 'Ensure the SQL Serverâ€™s SQLAgent Service Account is Not an Administrator'  
 SELECT '******************************************************************************'
 
 
 /*
-3.6 Ensure the SQL Server’s SQLAgent Service Account is Not an
+3.6 Ensure the SQL Serverâ€™s SQLAgent Service Account is Not an
 Administrator (Scored)
 Profile Applicability:
-• Level 1 - DatabaseEngine
+â€¢ Level 1 - DatabaseEngine
 Description:
 The service account and/or service SID used by the SQLSERVERAGENT service for a default
 instance or SQLAGENT$<InstanceName> service for a named instance should not be a
@@ -1399,7 +1399,7 @@ underlying permissions had been changed or if SQL Server Configuration Manager w
 not originally used to set the service account.
 Impact:
 The SQL Server Configuration Manager tool should always be used to change the SQL
-Server’s service account. This will ensure that the account has the necessary privileges. If
+Serverâ€™s service account. This will ensure that the account has the necessary privileges. If
 the service needs access to resources other than the standard Microsoft-defined directories
 and registry, then additional permissions may need to be granted separately to those
 resources.
@@ -1419,15 +1419,15 @@ and monitor for anomalous behavior.
 
 
 
-SELECT 'Ensure the  SQL Server’s Full-Text Service Account  is Not an Administrator'  
+SELECT 'Ensure the  SQL Serverâ€™s Full-Text Service Account  is Not an Administrator'  
 SELECT '******************************************************************************'
 
 
 /*
-3.7 Ensure the SQL Server’s Full-Text Service Account is Not an
+3.7 Ensure the SQL Serverâ€™s Full-Text Service Account is Not an
 Administrator (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The service account and/or service SID used by the MSSQLFDLauncher service for a default
 instance or MSSQLFDLauncher$<InstanceName> service for a named instance should not be
@@ -1451,7 +1451,7 @@ underlying permissions had been changed or if SQL Server Configuration Manager w
 not originally used to set the service account.
 Impact:
 The SQL Server Configuration Manager tool should always be used to change the SQL
-Server’s service account. This will ensure that the account has the necessary privileges. If
+Serverâ€™s service account. This will ensure that the account has the necessary privileges. If
 the service needs access to resources other than the standard Microsoft-defined directories
 and registry, then additional permissions may need to be granted separately to those
 resources.
@@ -1474,7 +1474,7 @@ and monitor for anomalous behavior.
 3.8 Ensure only the default permissions specified by Microsoft are
 granted to the public server role (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 public is a special fixed server role containing all logins. Unlike other fixed server roles,
 permissions can be changed for the public role. In keeping with the principle of least
@@ -1543,7 +1543,7 @@ and monitor for anomalous behavior.
 /*
 3.9 Ensure Windows BUILTIN groups are not SQL Logins (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Prior to SQL Server 2008, the BUILTIN\Administrators group was added a SQL Server
 login with sysadmin privileges during installation by default. Best practices promote
@@ -1603,7 +1603,7 @@ their need to access the information as a part of their responsibilities.
 
 3.10 Ensure Windows local groups are not SQL Logins (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Local Windows groups should not be used as logins for SQL Server instances.
 Rationale:
@@ -1661,7 +1661,7 @@ their need to access the information as a part of their responsibilities.
 3.11 Ensure the public role in the msdb database is not granted access
 to SQL Agent proxies (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The public database role contains every user in the msdb database. SQL Agent proxies
 define a security context in which a job step can run.
@@ -1722,7 +1722,7 @@ their need to access the information as a part of their responsibilities.
 4.1 Ensure 'MUST_CHANGE' Option is set to 'ON' for All SQL
 Authenticated Logins (Not Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Whenever this option is set to ON, SQL Server will prompt for an updated password the first
 time the new or altered login is used.
@@ -1768,7 +1768,7 @@ SELECT '************************************************************************
 4.2 Ensure 'CHECK_EXPIRATION' Option is set to 'ON' for All SQL
 Authenticated Logins Within the Sysadmin Role (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Applies the same password expiration policy used in Windows to passwords used inside
 SQL Server.
@@ -1830,14 +1830,14 @@ Ensure that all accounts have an expiration date that is monitored and enforced.
 
 
 
-SELECT '4.3 Ensure 'CHECK_POLICY' Option is set to 'ON' for All SQL Authenticated Logins (Scored) '
+SELECT '4.3 Ensure ''CHECK_POLICY'' Option is set to ''ON'' for All SQL Authenticated Logins (Scored) '
 SELECT '****************************************************************************************************************'
 
 /*
 4.3 Ensure 'CHECK_POLICY' Option is set to 'ON' for All SQL
 Authenticated Logins (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Applies the same password complexity policy used in Windows to passwords used inside
 SQL Server.
@@ -1890,7 +1890,7 @@ mechanisms.
 5.1 Ensure 'Maximum number of error log files' is set to greater than or
 equal to '12' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 SQL Server error log files must be protected from loss. The log files must be backed up
 before they are overwritten. Retaining more error logs helps prevent loss from frequent
@@ -1964,7 +1964,7 @@ SELECT '************************************************************************
 5.2 Ensure 'Default Trace Enabled' Server Configuration Option is set to
 '1' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 The default trace provides audit logging of database activity including account creations,
 privilege elevation and execution of DBCC commands.
@@ -2014,7 +2014,7 @@ SELECT '************************************************************************
 /*
 5.3 Ensure 'Login Auditing' is set to 'failed logins' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 This setting will record failed authentication attempts for SQL Server logins to the SQL
 Server Errorlog. This is the default setting for SQL Server.
@@ -2062,10 +2062,10 @@ References:
 1. https://docs.microsoft.com/en-us/sql/database-engine/configurewindows/server-properties-security-page
 CIS Controls:
 16.10 Profile User Account Usage and Monitor for Anomalies
-Profile each user’s typical account usage by determining normal time-of-day access and
+Profile each userâ€™s typical account usage by determining normal time-of-day access and
 access duration. Reports should be generated that indicate users who have logged in
 during unusual hours or have exceeded their normal login duration. This includes flagging
-the use of the user’s credentials from a computer other than computers on which the user
+the use of the userâ€™s credentials from a computer other than computers on which the user
 generally works.
 */
 
@@ -2077,7 +2077,7 @@ SELECT '************************************************************************
 5.4 Ensure 'SQL Server Audit' is set to capture both 'failed' and
 'successful logins' (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 SQL Server Audit is capable of capturing both failed and successful logins and writing them
 to one of three places: the application event log, the security event log, or the file system.
@@ -2113,9 +2113,9 @@ ON SA.audit_guid = S.audit_guid
 WHERE SAD.audit_action_id IN ('CNAU', 'LGFL', 'LGSD');
 /*
 The result set should contain 3 rows, one for the following audit_action_names:
-• AUDIT_CHANGE_GROUP
-• FAILED_LOGIN_GROUP
-• SUCCESSFUL_LOGIN_GROUP
+â€¢ AUDIT_CHANGE_GROUP
+â€¢ FAILED_LOGIN_GROUP
+â€¢ SUCCESSFUL_LOGIN_GROUP
 Both the Audit and Audit specification should be enabled and the audited_result should
 include both success and failure.
 Remediation:
@@ -2183,7 +2183,7 @@ with SQL Server.
 6.1 Ensure Sanitize Database and Application User Input is Sanitized
 (Not Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Always validate user input received from a database client or application by testing type,
 length, format, and range prior to transmitting it to the database server.
@@ -2196,13 +2196,13 @@ to users so that modifications to data must be done through stored procedures. V
 there's no SQL query in the application code produced by string concatenation.
 Remediation:
 The following steps can be taken to remediate SQL injection vulnerabilities:
-• Review TSQL and application code for SQL Injection
-• Only permit minimally privileged accounts to send user input to the server
-• Minimize the risk of SQL injection attack by using parameterized commands and
+â€¢ Review TSQL and application code for SQL Injection
+â€¢ Only permit minimally privileged accounts to send user input to the server
+â€¢ Minimize the risk of SQL injection attack by using parameterized commands and
 stored procedures
-• Reject user input containing binary data, escape sequences, and comment
+â€¢ Reject user input containing binary data, escape sequences, and comment
 characters
-• Always validate user input and do not use it directly to build SQL statements
+â€¢ Always validate user input and do not use it directly to build SQL statements
 Impact:
 Sanitize user input may require changes to application code or database object syntax.
 These changes can require applications or databases to be taken temporarily off-line. Any
@@ -2228,7 +2228,7 @@ SELECT '************************************************************************
 6.2 Ensure 'CLR Assembly Permission Set' is set to 'SAFE_ACCESS' for All
 CLR Assemblies (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Setting CLR Assembly Permission Sets to SAFE_ACCESS will prevent assemblies from
 accessing external system resources such as files, the network, environment variables, or
@@ -2279,7 +2279,7 @@ These recommendations pertain to encryption-related aspects of SQL Server.
 7.1 Ensure 'Symmetric Key encryption algorithm' is set to 'AES_128' or
 higher in non-system databases (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Per the Microsoft Best Practices, only the SQL Server AES algorithm options, AES_128,
 AES_192, and AES_256, should be used for a symmetric key encryption algorithm.
@@ -2329,7 +2329,7 @@ SELECT '***********************************************************************'
 7.2 Ensure Asymmetric Key Size is set to 'greater than or equal to 2048'
 in non-system databases (Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 Microsoft Best Practices recommend to use at least a 2048-bit encryption algorithm for
 asymmetric keys.
@@ -2380,7 +2380,7 @@ being given.
 8.1 Ensure 'SQL Server Browser Service' is configured correctly (Not
 Scored)
 Profile Applicability:
-• Level 1 - Database Engine
+â€¢ Level 1 - Database Engine
 Description:
 No recommendation is being given on disabling the SQL Server Browser service.
 Rationale:
