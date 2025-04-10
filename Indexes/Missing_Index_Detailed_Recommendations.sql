@@ -133,24 +133,24 @@ SELECT *
  N'CREATE NONCLUSTERED INDEX [IX_rename_me_'
  , index_handle
  ,'] ON '
- ,[Database.Schema.Table]
+ ,[Database.Schema.Table] COLLATE database_default
  ,' ( '
- ,ISNULL(equality_columns, inequality_columns)
+ ,ISNULL(equality_columns, inequality_columns) COLLATE database_default
  ,' )'
  , CASE WHEN (equality_columns IS NOT NULL AND inequality_columns IS NOT NULL)
  THEN N' INCLUDE ( ' + inequality_columns
  ELSE N''
- END
+ END COLLATE database_default
  , CASE WHEN included_columns IS NOT NULL AND (equality_columns IS NOT NULL AND inequality_columns IS NOT NULL)
  THEN N', ' + included_columns
  WHEN included_columns IS NOT NULL
  THEN N' INCLUDE ( ' + included_columns
  ELSE N''
- END
+ END COLLATE database_default
  , CASE WHEN included_columns IS NOT NULL OR (equality_columns IS NOT NULL AND inequality_columns IS NOT NULL)
  THEN N' )'
  ELSE N''
- END
+ END COLLATE database_default
  )
 FROM #Results
 ORDER BY index_advantage DESC
