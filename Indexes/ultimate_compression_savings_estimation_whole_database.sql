@@ -325,15 +325,15 @@ BEGIN
 END
 
 -- Make sure specified database is accessible
-IF DB_ID(@CurrDB) IS NULL OR DATABASEPROPERTYEX(@CurrDB, 'Updateability') <> 'READ_WRITE' OR DATABASEPROPERTYEX(@CurrDB, 'Status') <> 'ONLINE'
+IF DB_ID(@CurrDB) IS NULL OR DATABASEPROPERTYEX(@CurrDB, 'Updateability') <> 'READ_WRITE' OR DATABASEPROPERTYEX(@CurrDB, 'Status') <> 'ONLINE' OR HAS_DBACCESS(@CurrDB) = 0
 BEGIN
-	IF @FeasibilityCheckOnly = 0 OR DB_ID(@CurrDB) IS NULL OR DATABASEPROPERTYEX(@CurrDB, 'Status') <> 'ONLINE'
+	IF DB_ID(@CurrDB) IS NULL OR DATABASEPROPERTYEX(@CurrDB, 'Status') <> 'ONLINE' OR HAS_DBACCESS(@CurrDB) = 0
 	BEGIN
-		RAISERROR(N'Database "%s" is not valid for compression estimation check. Please make sure it is accessible and writeable.',16,1,@CurrDB);
+		RAISERROR(N'Database "%s" is not valid for compression estimation check. Please make sure it is online and accessible.',16,1,@CurrDB);
 		GOTO Quit;
 	END
 	ELSE
-		RAISERROR(N'-- NOTE: Database "%s" is not writeable. You will not be able to rebuild its indexes here until it is writeable.',10,1,@CurrDB);
+		RAISERROR(N'-- WARNING: Database "%s" is not writeable. You will not be able to rebuild its indexes here until it is writeable.',10,1,@CurrDB);
 END
 
 -- Get list of all un-compressed tables/partitions in the specified database
