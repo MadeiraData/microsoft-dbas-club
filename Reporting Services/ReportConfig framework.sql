@@ -10,6 +10,9 @@ CREATE TABLE dbo.ReportDataDrivenConfig (
     CcList NVARCHAR(2000),
     BccList NVARCHAR(2000),
     IncludeReport BIT,
+	FileName nvarchar (2000),
+	FilePath nvarchar (2000),
+	WriteMode nvarchar (20),
     RenderFormat VARCHAR(50),
     [Priority] NVARCHAR(10),
     [Subject] NVARCHAR(1000),
@@ -19,7 +22,10 @@ CREATE TABLE dbo.ReportDataDrivenConfig (
 	INDEX IX_C CLUSTERED (ReportConfigID)
 );
 GO
-CREATE PROCEDURE dbo.ReportConfigGet
+IF OBJECT_ID(N'[dbo].[ReportConfigEmailGet]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[ReportConfigEmailGet]
+GO
+CREATE PROCEDURE dbo.ReportConfigEmailGet
     @ReportConfigID INT = NULL
 AS
 BEGIN
@@ -43,7 +49,10 @@ BEGIN
 	OR @ReportConfigID IS NULL;
 END;
 GO
-CREATE PROCEDURE dbo.ReportConfigAdd
+IF OBJECT_ID(N'[dbo].[ReportConfigEmailAdd]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[ReportConfigEmailAdd]
+GO
+CREATE PROCEDURE dbo.ReportConfigEmailAdd
 	@ReportConfigID INT,
     @ToList NVARCHAR(2000),
     @CcList NVARCHAR(2000),
@@ -87,6 +96,63 @@ BEGIN
     );
 END;
 GO
+IF OBJECT_ID(N'[dbo].[ReportConfigFileShareGet]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[ReportConfigFileShareGet]
+GO
+CREATE PROCEDURE dbo.ReportConfigFileShareGet
+    @ReportConfigID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+		FileName,
+		FilePath,
+		WriteMode,
+        RenderFormat, 
+		ReportParameters
+    FROM 
+        dbo.ReportDataDrivenConfig
+    WHERE 
+        ReportConfigID = @ReportConfigID
+	OR @ReportConfigID IS NULL;
+END;
+GO
+IF OBJECT_ID(N'[dbo].[ReportConfigFileShareGet]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[ReportConfigFileShareGet]
+GO
+CREATE PROCEDURE dbo.ReportConfigFileShareGet
+	@ReportConfigID INT,
+    @FileName nvarchar (2000),
+	@FilePath nvarchar (2000),
+	@WriteMode nvarchar (20),
+    @RenderFormat VARCHAR(50),
+	@ReportParameters XML
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.ReportDataDrivenConfig (
+		ReportConfigID,
+		FileName,
+		FilePath,
+		WriteMode, 
+        RenderFormat,
+		ReportParameters
+    )
+    VALUES (
+		@ReportConfigID,
+		@FileName,
+		@FilePath,
+		@WriteMode, 
+        @RenderFormat, 
+		@ReportParameters
+    );
+END;
+GO
+IF OBJECT_ID(N'[dbo].[ReportConfigRemove]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[ReportConfigRemove]
+GO
 CREATE PROCEDURE dbo.ReportConfigRemove
     @ReportConfigID INT
 AS
@@ -108,7 +174,9 @@ GO
 CREATE PROCEDURE dbo.get_data_driven_subscription_info
 @scheduleID uniqueidentifier
 AS
+
 SET NOCOUNT ON;
+
 DECLARE
 @subscriptionID uniqueidentifier,
 @ReportID uniqueidentifier
@@ -148,11 +216,9 @@ CREATE PROCEDURE dbo.data_driven_subscription
 @Priority nvarchar(10) = 'NORMAL',
 @ParameterValues XML = NULL
 /* @ParameterValues example:
- '<ParameterValues><ParameterValue><Name>' + 
-	@p1 + 
-	'</Name><Value>' + 
-	@param1 + 
-	'</Value></ParameterValue></ParameterValues>'
+'<ParameterValues>
+ <ParameterValue><Name>' + @p1 + '</Name><Value>' + @param1 + '</Value></ParameterValue>
+</ParameterValues>'
 */
 )
 
@@ -331,11 +397,9 @@ CREATE PROCEDURE dbo.data_driven_subscription_file_share
 @WriteMode nvarchar (20) = 'OverWrite',
 @ParameterValues XML = NULL
 /* @ParameterValues example:
- '<ParameterValues><ParameterValue><Name>' + 
-	@p1 + 
-	'</Name><Value>' + 
-	@param1 + 
-	'</Value></ParameterValue></ParameterValues>'
+'<ParameterValues>
+ <ParameterValue><Name>' + @p1 + '</Name><Value>' + @param1 + '</Value></ParameterValue>
+</ParameterValues>'
 */
 )
 

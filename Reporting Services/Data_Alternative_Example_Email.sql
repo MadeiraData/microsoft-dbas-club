@@ -1,8 +1,8 @@
 USE ReportServer
 GO
 
-IF OBJECT_ID(N'[dbo].[RunPseudoDataDrivenReport]', 'P') IS NOT NULL
-DROP PROCEDURE [dbo].[RunPseudoDataDrivenReport]
+IF OBJECT_ID(N'[dbo].[RunPseudoDataDrivenEmailReport]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[RunPseudoDataDrivenEmailReport]
 GO
 SET QUOTED_IDENTIFIER ON 
 GO
@@ -10,9 +10,9 @@ SET ANSI_NULLS ON
 GO
 /*
 -- Sample usage:
-EXEC [RunPseudoDataDrivenReport] @ReportConfigID = 56, @ReportPath = N'/PeriodicReports/Monthly Report'
+EXEC [RunPseudoDataDrivenEmailReport] @ReportConfigID = 56, @ReportPath = N'/PeriodicReports/Monthly Report'
 */
-CREATE PROCEDURE dbo.[RunPseudoDataDrivenReport]
+CREATE PROCEDURE dbo.[RunPseudoDataDrivenEmailReport]
 	@ReportConfigID		INT,
 	@ReportPath			NVARCHAR(850)
 AS
@@ -33,7 +33,7 @@ END
 DECLARE @DataDrivenConfig AS TABLE (ToList nvarchar(2000), CcList nvarchar(2000), BccList nvarchar(2000), IncludeReport bit, RenderFormat varchar(50), [Priority] nvarchar(10), [Subject] nvarchar(1000), Comment nvarchar(max), IncludeLink bit, ReportParameters XML)
 
 INSERT INTO @DataDrivenConfig
-EXEC dbo.ReportConfigGet @ReportConfigID
+EXEC dbo.ReportConfigEmailGet @ReportConfigID
 
 IF @@ROWCOUNT = 0
 BEGIN
@@ -91,3 +91,4 @@ END
 CLOSE Configs;
 DEALLOCATE Configs;
 GO
+
