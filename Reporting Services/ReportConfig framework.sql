@@ -1,5 +1,9 @@
 USE ReportServer
 GO
+SET QUOTED_IDENTIFIER ON 
+GO
+SET ANSI_NULLS ON 
+GO
 CREATE TABLE dbo.ReportDataDrivenConfig (
     ReportConfigID INT,
     ToList NVARCHAR(2000),
@@ -97,6 +101,27 @@ GO
 -- https://www.sqlservercentral.com/Forums/Topic279460-150-1.aspx
 -- http://www.sqlservercentral.com/scripts/Miscellaneous/31733/
 USE ReportServer
+GO
+IF OBJECT_ID(N'[dbo].[get_data_driven_subscription_info]', 'P') IS NOT NULL
+DROP PROCEDURE [dbo].[get_data_driven_subscription_info]
+GO
+CREATE PROCEDURE dbo.get_data_driven_subscription_info
+@scheduleID uniqueidentifier
+AS
+SET NOCOUNT ON;
+DECLARE
+@subscriptionID uniqueidentifier,
+@ReportID uniqueidentifier
+
+-- set the subscription ID
+SELECT @subscriptionID = SubscriptionID, @ReportID = ReportID
+FROM ReportSchedule WHERE ScheduleID = @scheduleID
+
+SELECT ItemID AS ReportID, [Path], [Name], @scheduleID AS [ScheduleID], ExtensionSettings, [Parameters]
+FROM [Catalog] AS c, Subscriptions AS sub
+WHERE sub.SubscriptionID = @SubscriptionID
+AND c.ItemID = @ReportID
+
 GO
 
 IF OBJECT_ID(N'[dbo].[data_driven_subscription]', 'P') IS NOT NULL

@@ -85,7 +85,7 @@ BEGIN
 						,@sub			= @Subject		
 						,@emailBODY		= @Comment		
 						,@IncludeLink	= @IncludeLink
-						,@ReportParameters = @ReportParameters
+						,@ParameterValues = @ReportParameters
 END
 
 CLOSE Configs;
