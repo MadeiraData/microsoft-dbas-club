@@ -3,6 +3,7 @@ DECLARE
 	,@IgnoreFunctionsDependentOnSynonyms BIT = 1 -- optionally filter out functions that depend on synonyms (cannot be schemabound)
 	,@IgnoreFunctionsWithConstraintDependencies BIT = 1 -- optionally filter out functions that have constraints dependant on them (cannot be altered)
 	,@IgnoreFunctionsDependentOnLinkedServers BIT = 1 -- optionally filter out functions that depend on linked servers (cannot be schemabound)
+	,@IgnoreFunctionsDependentOnCrossDB BIT = 1 -- optionally filter out functions that depend on other databases (cannot be schemabound)
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET NOCOUNT ON;
@@ -177,6 +178,18 @@ BEGIN
 		ON srv.server_id > 0
 		AND (LOWER(T.[definition]) LIKE N'%' + LOWER(srv.name) + N'.%.%.%' 
 		OR LOWER(T.[definition]) LIKE N'%_' + LOWER(srv.name) + N'_.%.%.%')
+		OPTION (RECOMPILE);
+	END
+	
+	-- Remove functions that reference other databases
+	IF @IgnoreFunctionsDependentOnCrossDB = 1
+	BEGIN
+		DELETE T
+		FROM #temp_Schemabinding  AS T
+		INNER JOIN sys.databases AS db
+		ON db.database_id <> DB_ID(T.database_name)
+		AND (LOWER(T.[definition]) LIKE N'%' + LOWER(db.name) + N'.%' 
+		OR LOWER(T.[definition]) LIKE N'%_' + LOWER(db.name) + N'_.%')
 		OPTION (RECOMPILE);
 	END
 END
