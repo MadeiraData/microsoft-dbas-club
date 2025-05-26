@@ -70,13 +70,17 @@ WHERE so.[type] IN (''U'', ''V'')
 GROUP BY so.[object_id], so.[name], ss.name, so.[type], so.type_desc, ep.[EndTime]'
 
 DECLARE DBs CURSOR
-LOCAL FAST_FORWARD READ_ONLY
+LOCAL STATIC FORWARD_ONLY READ_ONLY
 FOR
 SELECT [name]
 FROM sys.databases
 WHERE HAS_DBACCESS([name]) = 1
 AND state = 0
 AND [name] NOT IN ('tempdb')
+--AND database_id <= 4 -- system only
+AND database_id > 4 -- user only
+--AND [name] IN ('ArchiveDB','CRM') -- specific database names only
+--AND [name] NOT IN ('ArchiveDB','CRM') -- exclude specific database names only
 
 OPEN DBs
 
