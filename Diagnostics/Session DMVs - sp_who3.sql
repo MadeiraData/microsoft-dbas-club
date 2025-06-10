@@ -19,6 +19,7 @@ SELECT
 								WHEN s.login_name = s.original_login_name THEN s.login_name 
 								ELSE s.login_name + ' (' + s.original_login_name + ')' 
 						  END,
+	r.start_time,
 	s.program_name,
 	database_name		= DB_NAME(ISNULL(r.database_id, s.database_id)),
 	r.command,
@@ -60,3 +61,5 @@ OUTER APPLY
 	sys.dm_exec_input_buffer(s.session_id, r.request_id) ib
 WHERE
 	s.session_id <> @@SPID
+ORDER BY
+	ISNULL(r.start_time, '2999-12-31') ASC
