@@ -19,16 +19,17 @@ Description:
 ----------------------------------------------------------------------------
 
 Change log:
+	2025-06-18 - Eitan - Added new parameters: @MaxActiveTranLogSizeMB, @MaxActiveTranLogSizePct, and @ActiveTranLogSeverity
 	2024-09-29 - Vitaly - Added a time limit (maximum execution duration) for the process (@TimeLimit and @RunStartTime parameters) 
-	2021-09-17 - Renamed @MinPercentFree to @MaxPercentUsed, some code-quality fixes
-	2021-09-17 - added shrink with TRUNCATEONLY attempt when conditions favor it
-	2021-09-17 - added linked server connectivity test. moved recovery queue check to start of loop.
-	2020-08-23 - Added new parameters: @AGReplicaLinkedServer, @MaxReplicaRecoveryQueue, @RecoveryQueueSeverity, and @WhatIf
-	2020-06-22 - Added @RegrowOnError5240 parameter
-	2020-06-21 - Added @DelayBetweenShrinks and @IterationMaxRetries parameters
-	2020-03-18 - Added @DatabaseName parameter
-	2020-01-30 - Added @MinPercentFree, and made all parameters optional
-	2020-01-05 - First version
+	2021-09-17 - Eitan - Renamed @MinPercentFree to @MaxPercentUsed, some code-quality fixes
+	2021-09-17 - Eitan - added shrink with TRUNCATEONLY attempt when conditions favor it
+	2021-09-17 - Eitan - added linked server connectivity test. moved recovery queue check to start of loop.
+	2020-08-23 - Eitan - Added new parameters: @AGReplicaLinkedServer, @MaxReplicaRecoveryQueue, @RecoveryQueueSeverity, and @WhatIf
+	2020-06-22 - Eitan - Added @RegrowOnError5240 parameter
+	2020-06-21 - Eitan - Added @DelayBetweenShrinks and @IterationMaxRetries parameters
+	2020-03-18 - Eitan - Added @DatabaseName parameter
+	2020-01-30 - Eitan - Added @MinPercentFree, and made all parameters optional
+	2020-01-05 - Eitan - First version
 ----------------------------------------------------------------------------
 
 Parameters:
@@ -50,6 +51,11 @@ DECLARE
 	,@AGReplicaLinkedServer	SYSNAME	= NULL		-- Linked Server name of the AG replica to check. Leave as NULL to ignore.
 	,@MaxReplicaRecoveryQueue INT	= 10000		-- Maximum recovery queue of AG replica (in KB). Use this to prevent overload on the AG.
 	,@RecoveryQueueSeverity INT	= 16		-- Error severity to raise when @MaxReplicaRecoveryQueue is breached.
+
+	,@MaxActiveTranLogSizeMB	INT = NULL		-- Maximum active log size (in MB). Use this to prevent overload on the transaction log or on the AG. Leave as NULL to ignore.
+	,@MaxActiveTranLogSizePct	INT = NULL		-- Maximum active log size (in Percent). Use this to prevent overload on the transaction log or on the AG. Leave as NULL to ignore.
+	,@ActiveTranLogSeverity		INT = 16		-- Error severity to raise when @MaxActiveTranLogSizeMB or @MaxActiveTranLogSizePct are breached.
+
 	,@TimeLimit					INT 		= 86400				-- Set a maximum execution duration in second (3600 = 1 hour / 86400 = 24 hours) / NULL - no limmit!
 
 	,@WhatIf		BIT	= 0		-- Set to 1 to only print the commands but not run them.
@@ -135,7 +141,33 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR(N'Successfully connected to replica server "%s". Current recovery queue for databsae "%s": %d KB.', 0, 1, @PartnerServer, @DatabaseName, @RecoveryQueue) WITH NOWAIT;
+		RAISERROR(N'-- Successfully connected to replica server "%s". Current recovery queue for databsae "%s": %d KB.', 0, 1, @PartnerServer, @DatabaseName, @RecoveryQueue) WITH NOWAIT;
+	END
+END
+
+DECLARE @ActiveTranLogCheckCmd NVARCHAR(MAX), @ActiveTranLogCheckParams NVARCHAR(MAX), @ActiveTranLogSizeMB INT, @TotalTranLogSizeMB INT
+
+IF @MaxActiveTranLogSizeMB IS NOT NULL OR @MaxActiveTranLogSizePct IS NOT NULL
+BEGIN
+	IF OBJECT_ID('sys.dm_db_log_stats') IS NULL
+	BEGIN
+		RAISERROR(N'Sorry, @MaxActiveTranLogSizeMB and @MaxActiveTranLogSizePct are not supported on this SQL Server instance. Please change both of them to NULL.',16,1);
+		GOTO Quit;
+	END
+
+	SET @ActiveTranLogCheckCmd = N'SELECT @ActiveTranLogSizeMB = active_log_size_mb, @TotalTranLogSizeMB = total_log_size_mb FROM sys.dm_db_log_stats(DB_ID(@DatabaseName))'
+	SET @ActiveTranLogCheckParams = N'@ActiveTranLogSizeMB INT OUTPUT, @TotalTranLogSizeMB INT OUTPUT, @DatabaseName sysname'
+	
+	EXEC @sp_executesql @ActiveTranLogCheckCmd, @ActiveTranLogCheckParams, @ActiveTranLogSizeMB OUTPUT, @TotalTranLogSizeMB OUTPUT, @DatabaseName;
+
+	IF @ActiveTranLogSizeMB IS NULL
+	BEGIN
+		RAISERROR(N'Unable to retrieve the active transaction log size for database "%s".', 16, 1, @DatabaseName);
+		GOTO Quit;
+	END
+	ELSE
+	BEGIN
+		RAISERROR(N'-- Current active transaction log size of database "%s" is %d MB out of %d MB in total.',0,1,@DatabaseName, @ActiveTranLogSizeMB, @TotalTranLogSizeMB) WITH NOWAIT;
 	END
 END
 
@@ -211,6 +243,19 @@ BEGIN
 		IF @RecoveryQueue > @MaxReplicaRecoveryQueue
 		BEGIN
 			RAISERROR(N'-- Stopping because the recovery queue in server "%s" has reached %d KB.', @RecoveryQueueSeverity, 1, @PartnerServer, @RecoveryQueue);
+			GOTO Quit;
+		END
+	END
+
+	-- Check active transaction log size
+	IF @ActiveTranLogCheckCmd IS NOT NULL
+	BEGIN
+		SET @ActiveTranLogSizeMB = NULL;
+		EXEC @sp_executesql @ActiveTranLogCheckCmd, @ActiveTranLogCheckParams, @ActiveTranLogSizeMB OUTPUT, @TotalTranLogSizeMB OUTPUT, @DatabaseName;
+
+		IF (@ActiveTranLogSizeMB >= @MaxActiveTranLogSizeMB) OR (@ActiveTranLogSizeMB * 100.0 / @TotalTranLogSizeMB >= @MaxActiveTranLogSizePct)
+		BEGIN
+			RAISERROR(N'-- Stopping because the active transaction log size of database "%s" has reached %d MB out of %d MB in total.', @ActiveTranLogSeverity, 1, @DatabaseName, @ActiveTranLogSizeMB, @TotalTranLogSizeMB);
 			GOTO Quit;
 		END
 	END
