@@ -22,7 +22,6 @@ SET @TimeLimitSeconds = DATEDIFF(second, GETDATE(), @MaxEndTime)
 
 EXEC dbo.DatabaseIntegrityCheck
 	@Databases = 'ALL_DATABASES',
-	@DatabaseOrder = 'DATABASE_LAST_GOOD_CHECK_ASC',
 	@CheckCommands = 'CHECKALLOC,CHECKCATALOG',
 	--@PhysicalOnly = 'Y',
 	@TimeLimit = @TimeLimitSeconds,
