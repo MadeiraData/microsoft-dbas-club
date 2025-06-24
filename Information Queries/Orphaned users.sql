@@ -9,7 +9,7 @@ DECLARE @temp_Orphan AS TABLE
 INSERT INTO @temp_Orphan
 EXEC sp_MSforeachdb 
 N'
-IF ''?'' NOT IN (''DoronTemp'', ''ExtractPool'', ''MergeConversionTables'', ''MergeConversionTablesMVS'', ''Uniform_PizuimInterfaceBeforeMizug'', ''UniformStructure_BillingBeforeMizug'', ''UniformStructure_EmployersBeforeMizug'') 
+IF ''?'' NOT IN (''XXX'', ''YYY'') --removing DBs from the condition
     AND DATABASEPROPERTYEX(''?'', ''Status'') = ''ONLINE'' 
     AND DATABASEPROPERTYEX(''?'', ''Updateability'') = ''READ_WRITE''
 BEGIN
