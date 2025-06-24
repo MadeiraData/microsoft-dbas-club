@@ -19,7 +19,7 @@ ON OB.id = MO.object_id
 AND OB.type = ''FN''
 AND MO.is_schema_bound = 0
 WHERE DB_ID() > 4
-AND LOWER(DB_NAME()) NOT IN (''reportserver'',''reportservertemp'',''distribution'',''ssisdb'',''DBA_MON'',''OI.CacheDB'')
+AND LOWER(DB_NAME()) NOT IN (''XX'',''YY'') --removing DBs from the condition
 AND MO.definition IS NOT NULL
 AND OB.name <> ''fn_diagramobjects''
 AND OB.name not like ''%validate%''
