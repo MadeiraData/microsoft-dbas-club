@@ -8,9 +8,31 @@ DECLARE
 	 @MinimumRowsInTable INT = 200000
 	,@MinimumUserUpdates INT = 100
 	,@MinimumTableCreationDays INT = 30
+	
+DECLARE @FilterSpecificIndexes AS TABLE (DBName sysname NULL, SchemaName sysname NULL, ObjectName sysname NULL, IndexName sysname NULL);
+
+INSERT INTO @FilterSpecificIndexes
+VALUES
+(NULL,NULL,NULL,NULL)
+-- Add here list of additional specific indexes to filter by
+
+
+
+
+/*******************************************************************************************/
 
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+DECLARE @IsFiltered BIT = 0;
+
+IF EXISTS (SELECT * FROM @FilterSpecificIndexes WHERE IndexName IS NOT NULL)
+BEGIN
+	SET @MinimumUserUpdates = 0
+	SET @IsFiltered = 1
+END
+
+
 DECLARE @CMD NVARCHAR(MAX);
 SET @CMD = N'SELECT
  DB_NAME() AS DBName,
@@ -49,12 +71,12 @@ INNER JOIN sys.partitions ON indexes.object_id = partitions.object_id AND indexe
 LEFT JOIN sys.dm_db_index_usage_stats AS usage_stats ON indexes.index_id = usage_stats.index_id AND usage_stats.object_id = indexes.object_id AND usage_stats.database_id = DB_ID()
 LEFT JOIN sys.dm_db_partition_stats AS partition_stats ON indexes.index_id = partition_stats.index_id AND partition_stats.object_id = indexes.object_id
 WHERE
- ISNULL(usage_stats.user_updates, 0) + ISNULL(usage_stats.system_updates, 0) >= ' + CAST(@MinimumUserUpdates AS NVARCHAR(MAX)) + N'
+ tables.is_ms_shipped = 0
+ AND ISNULL(usage_stats.user_updates, 0) + ISNULL(usage_stats.system_updates, 0) >= ' + CAST(@MinimumUserUpdates AS NVARCHAR(MAX)) + N'
  AND ISNULL(usage_stats.user_lookups,0) = 0
  AND ISNULL(usage_stats.user_seeks,0) = 0
  AND ISNULL(usage_stats.user_scans,0) = 0
  AND tables.create_date < DATEADD(dd, -' + CAST(@MinimumTableCreationDays AS NVARCHAR(MAX)) + N', GETDATE())
- AND tables.is_ms_shipped = 0
  AND indexes.index_id > 1
  AND indexes.is_primary_key = 0
  AND indexes.is_unique = 0
@@ -70,7 +92,7 @@ HAVING
  SUM(partitions.rows) > ' + CAST(@MinimumRowsInTable AS NVARCHAR(MAX))
 
 IF OBJECT_ID('tempdb..#tmp') IS NOT NULL DROP TABLE #tmp;
-CREATE TABLE #tmp (DBName SYSNAME, SchemaName SYSNAME, TableName SYSNAME, IndexName SYSNAME NULL, RowsCount BIGINT, IndexSizeKB BIGINT, UpdatesCount BIGINT NULL
+CREATE TABLE #tmp (DBName SYSNAME COLLATE DATABASE_DEFAULT, SchemaName SYSNAME COLLATE DATABASE_DEFAULT, TableName SYSNAME COLLATE DATABASE_DEFAULT, IndexName SYSNAME COLLATE DATABASE_DEFAULT NULL, RowsCount BIGINT, IndexSizeKB BIGINT, UpdatesCount BIGINT NULL
 , TableCreatedDate DATETIME NULL, LastStatsDate datetime
 , IndexFilter nvarchar(MAX) NULL, KeyCols nvarchar(MAX) NULL, IncludeCols nvarchar(MAX) NULL);
 
@@ -86,14 +108,14 @@ BEGIN
 END
 
 DECLARE DBs CURSOR
-LOCAL FAST_FORWARD
+LOCAL STATIC READ_ONLY FORWARD_ONLY
 FOR
 SELECT [name]
 FROM sys.databases
 WHERE HAS_DBACCESS([name]) = 1
 AND database_id > 4
 AND state_desc = 'ONLINE'
-AND DATABASEPROPERTYEX([name], 'Updateability') = 'READ_WRITE'
+AND (@MinimumUserUpdates <= 0 OR DATABASEPROPERTYEX([name], 'Updateability') = 'READ_WRITE')
 
 OPEN DBs;
 
@@ -111,9 +133,20 @@ END
 CLOSE DBs;
 DEALLOCATE DBs;
 
-SELECT *,
-DisableCmd = N'USE ' + QUOTENAME(DBName) + N'; IF INDEXPROPERTY(OBJECT_ID(''' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N'''), ''' + IndexName + N''', ''IsDisabled'') = 0 ALTER INDEX ' + QUOTENAME(IndexName) + N' ON ' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N' DISABLE;',
-DropCmd = N'USE ' + QUOTENAME(DBName) + N'; IF INDEXPROPERTY(OBJECT_ID(''' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N'''), ''' + IndexName + N''', ''IndexID'') IS NOT NULL DROP INDEX ' + QUOTENAME(IndexName) + N' ON ' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N';'
-FROM #tmp
+SELECT *
+, DisableCmd = N'USE ' + QUOTENAME(DBName) + N'; IF INDEXPROPERTY(OBJECT_ID(''' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N'''), ''' + IndexName + N''', ''IsDisabled'') = 0 ALTER INDEX ' + QUOTENAME(IndexName) + N' ON ' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N' DISABLE;'
+, DropCmd = N'USE ' + QUOTENAME(DBName) + N'; IF INDEXPROPERTY(OBJECT_ID(''' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N'''), ''' + IndexName + N''', ''IndexID'') IS NOT NULL DROP INDEX ' + QUOTENAME(IndexName) + N' ON ' + QUOTENAME(SchemaName) + N'.' + QUOTENAME(TableName) + N';'
+, AddToFilter = CONCAT(N',(', QUOTENAME(t.DBName, N''''), N',', QUOTENAME(SchemaName, N''''), N',', QUOTENAME(TableName, N''''), N',', QUOTENAME(IndexName, N''''), N')')
+FROM #tmp AS t
+WHERE @IsFiltered = 0
+OR EXISTS
+(
+	SELECT *
+	FROM @FilterSpecificIndexes AS f
+	WHERE t.DBName = f.DBName COLLATE DATABASE_DEFAULT
+	AND t.SchemaName = f.SchemaName COLLATE DATABASE_DEFAULT
+	AND t.TableName = f.ObjectName COLLATE DATABASE_DEFAULT
+	AND t.IndexName = f.IndexName COLLATE DATABASE_DEFAULT
+)
 ORDER BY
     DBName ASC, IndexSizeKB DESC, RowsCount DESC
