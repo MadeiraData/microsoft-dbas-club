@@ -4,7 +4,7 @@
 DECLARE @NewPath VARCHAR(MAX) = 'Z:\MSSQL\DATA\' -- choose your new location
 
 SELECT 'ALTER DATABASE tempdb MODIFY FILE (NAME = [' + f.name + '],'
- + ' FILENAME = ' + @NewPath + f.name
+ + ' FILENAME = ''' + @NewPath + f.name
  + CASE WHEN f.type = 1 THEN '.ldf' ELSE '.mdf' END
  + ''');'
 FROM sys.master_files f
