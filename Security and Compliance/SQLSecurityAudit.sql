@@ -69,8 +69,8 @@ SELECT @cmd = ISNULL(@cmd + N',' + CHAR(13), N'') + N' ADD (' + q.covering_paren
 FROM (SELECT DISTINCT covering_parent_action_name
 FROM sys.dm_audit_actions
 WHERE parent_class_desc = 'SERVER'
-AND covering_parent_action_name LIKE '%CHANGE%'
-AND covering_parent_action_name NOT IN
+AND (covering_parent_action_name LIKE '%CHANGE%' OR covering_parent_action_name IN ('FAILED_LOGIN_GROUP','LOGIN_LOCKOUT_GROUP'))
+AND covering_parent_action_name NOT IN -- ignore database-level DDLs
 ('DATABASE_CHANGE_GROUP','DATABASE_OBJECT_CHANGE_GROUP','SCHEMA_OBJECT_CHANGE_GROUP','SERVER_OBJECT_CHANGE_GROUP')
 ) AS q
 WHERE NOT EXISTS
