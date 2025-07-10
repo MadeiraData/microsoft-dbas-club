@@ -6,7 +6,7 @@ SELECT
 	TotalFileSize_MB = ls.total_log_size_in_bytes / 1024.0 / 1024,
 	ActiveFileSize_MB = ls.active_log_size_in_bytes / 1024.0 / 1024,
 	ActiveFileSize_PCT = CONVERT(smallmoney, ls.active_log_size_in_bytes * 1.0 / ls.total_log_size_in_bytes * 100),
-	ls.log_reuse_wait_desc,
+	DB.log_reuse_wait_desc,
 	RemediationCommand =
 		CASE ls.log_reuse_wait_desc
 			WHEN 'REPLICATION' THEN CONCAT(
@@ -34,7 +34,7 @@ SELECT
 		END
 FROM sys.databases AS DB
 CROSS APPLY sys.dm_db_log_stats(DB.database_id) AS ls
-WHERE ls.log_reuse_wait_desc <> 'NOTHING'
+WHERE DB.log_reuse_wait_desc <> 'NOTHING'
 AND HAS_DBACCESS(DB.[name]) = 1
 AND DB.state = 0
 ORDER BY ActiveFileSize_PCT DESC;
