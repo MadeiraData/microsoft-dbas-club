@@ -1,14 +1,12 @@
 SELECT
 	DB.[name] AS DBName,
-	ls.number_of_vlfs AS VLFsCount,
-	ls.total_log_size_in_bytes AS TotalFileSize,
-	ls.active_log_size_in_bytes AS ActiveFileSize,
-	TotalFileSize_MB = ls.total_log_size_in_bytes / 1024.0 / 1024,
-	ActiveFileSize_MB = ls.active_log_size_in_bytes / 1024.0 / 1024,
-	ActiveFileSize_PCT = CONVERT(smallmoney, ls.active_log_size_in_bytes * 1.0 / ls.total_log_size_in_bytes * 100),
+	ls.total_vlf_count AS VLFsCount,
+	TotalFileSize_MB = ls.total_log_size_mb,
+	ActiveFileSize_MB = ls.active_log_size_mb,
+	ActiveFileSize_PCT = CONVERT(smallmoney, ls.active_log_size_mb * 1.0 / ls.total_log_size_mb * 100),
 	DB.log_reuse_wait_desc,
 	RemediationCommand =
-		CASE ls.log_reuse_wait_desc
+		CASE DB.log_reuse_wait_desc
 			WHEN 'REPLICATION' THEN CONCAT(
 				'-- Confirm replication/CDC status, then consider: ',
 				'USE [', DB.[name], ']; EXEC sp_repldone NULL, NULL, 0,0,1; CHECKPOINT;')
