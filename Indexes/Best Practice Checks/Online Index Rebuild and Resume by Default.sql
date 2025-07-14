@@ -11,11 +11,19 @@ This is relevant to SQL Server versions 2019 and newer only, Enterprise edition 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET NOCOUNT ON;
 
-DECLARE @ShowRemediation bit = 0 -- change to 1 to output remediation commands for all relevant databases
+DECLARE @ShowRemediation bit = 0 	-- change to 1 to output remediation commands for all relevant databases
+DECLARE @ElevateResumable bit = 0 	-- change to 1 to check the ELEVATE_RESUMABLE option as well (normally not recommended)
 
 
 DECLARE @CurrDB sysname, @SpExecuteSQL nvarchar(501)
 DECLARE @Results AS TABLE (dbname sysname, config sysname)
+DECLARE @Cmd nvarchar(max)
+
+SET @Cmd = N'select DB_NAME(), [name]
+from sys.database_scoped_configurations
+where name IN (''ELEVATE_ONLINE'''
++ CASE WHEN @ElevateResumable = 1 THEN N', ''ELEVATE_RESUMABLE''' ELSE N'' END + N')
+and value = ''OFF'''
 
 DECLARE DBs CURSOR
 LOCAL FAST_FORWARD
@@ -37,10 +45,7 @@ BEGIN
 	SET @SpExecuteSQL = QUOTENAME(@CurrDB) + N'..sp_executesql'
 
 	INSERT INTO @Results
-	EXEC @SpExecuteSQL N'select DB_NAME(), [name]
-from sys.database_scoped_configurations
-where name IN (''ELEVATE_ONLINE'', ''ELEVATE_RESUMABLE'')
-and value = ''OFF''' WITH RECOMPILE;
+	EXEC @SpExecuteSQL @Cmd WITH RECOMPILE;
 
 END
 
