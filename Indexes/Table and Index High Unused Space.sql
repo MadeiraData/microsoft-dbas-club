@@ -1,11 +1,13 @@
 DECLARE
 	@TopPerDB		int		= 50,
+	@FilterByDBName		sysname		= NULL,		-- NULL = All databases | DB_NAME() = current database
 	@MinimumRowCount	bigint		= 1000,
 	@MinimumUnusedSizeMB	bigint		= 1024,
 	@MinimumUnusedSpacePct	bigint		= 40,
 	@RebuildIndexOptions	varchar(max)	= 'ONLINE = ON, MAXDOP = 4, SORT_IN_TEMPDB = ON' -- , RESUMABLE = ON  -- adjust as needed
 
 SET NOCOUNT, ARITHABORT, XACT_ABORT ON;
+SET ANSI_WARNINGS OFF;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 DECLARE @command NVARCHAR(MAX);
 DECLARE @TempResult AS TABLE (DatabaseName sysname NOT NULL, SchemaName sysname NULL, TableName sysname NULL, IndexName sysname NULL, Fill_Factor int NULL
@@ -44,6 +46,7 @@ WHERE
 	AND OBJECT_SCHEMA_NAME(i.object_id) <> ''sys''
 	AND i.object_id > 255 
 	and p.rows >= 1
+	AND i.data_space_id <> 0 -- not memory-optimized or TVF
 GROUP BY 
 	i.object_id, i.name, i.index_id, i.fill_factor
 HAVING
@@ -52,22 +55,35 @@ HAVING
 	AND (SUM(a.used_pages) * 1.0) / SUM(a.total_pages) <= 1 - (' + CONVERT(nvarchar(max), @MinimumUnusedSpacePct) + ' / 100.0)
 ORDER BY TotalSpaceMB DESC'
 
-IF SERVERPROPERTY('EngineEdition') = 5
-BEGIN
-	INSERT INTO @TempResult
-	EXEC (@command)
-END
-ELSE
-BEGIN
-	SET @command = N'IF EXISTS (SELECT * FROM sys.databases WHERE [name] = ''?'' AND state = 0 AND HAS_DBACCESS([name]) = 1 AND database_id > 4 AND is_distributor = 0 AND DATABASEPROPERTYEX([name], ''Updateability'') = ''READ_WRITE'')
-BEGIN
-USE [?];
-' + @command + N'
-END'
+DECLARE @CurrDB sysname, @Executor nvarchar(500);
 
+DECLARE dbs CURSOR
+LOCAL STATIC FORWARD_ONLY READ_ONLY
+FOR
+SELECT [name]
+FROM sys.databases
+WHERE state = 0
+AND HAS_DBACCESS([name]) = 1
+AND database_id > 4
+AND is_distributor = 0
+AND DATABASEPROPERTYEX([name], 'Updateability') = 'READ_WRITE'
+AND (@FilterByDBName IS NULL OR [name] LIKE @FilterByDBName)
+
+OPEN dbs;
+
+WHILE 1=1
+BEGIN
+	FETCH NEXT FROM dbs INTO @CurrDB;
+	IF @@FETCH_STATUS <> 0 BREAK;
+	
+	SET @Executor = QUOTENAME(@CurrDB) + N'..sp_executesql'
+	
 	INSERT INTO @TempResult
-	EXEC sp_MSforeachdb @command
+	EXEC @Executor @command
 END
+
+CLOSE dbs;
+DEALLOCATE dbs;
 
 SELECT r.*
 , UnusedSpacePercent = UnusedSpaceMB / TotalSpaceMB * 100
