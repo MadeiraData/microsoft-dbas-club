@@ -1,8 +1,8 @@
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 SELECT 
-    Msg = CONCAT(N'Job "', j.name, N'" step ', s.step_id, N' ("', s.step_name,N'") ',
-    , CARE WHEN s.retry_attempts > 0 THEN N'has retries enabled but ' ELSE N'' END
+    Msg = CONCAT(N'Job "', j.name, N'" step ', s.step_id, N' ("', s.step_name,N'") '
+    , CASE WHEN s.retry_attempts > 0 THEN N'has retries enabled but ' ELSE N'' END
     , CASE WHEN (s.flags & 2) = 0 THEN N'Append is disabled (which may cause loss of info) ' ELSE N'Append is enabled ' END
     , CASE WHEN
                 s.output_file_name NOT LIKE '%(TIME)%'
