@@ -19,7 +19,9 @@ Prerequisites:
 	- SQL Server version 2012 or newer.
 */
 DECLARE @EndTime datetime = DATEADD(hour, 2, GETDATE()) -- Adjust the time limit as needed
-DECLARE @OlaHallengrenDBName sysname = DB_NAME() -- This script must run within the context of the database where Ola's maintenance solution was installed
+DECLARE @PhysicalOnly char(1) = 'N' 					-- Change to 'Y' to perform PHYSICAL_ONLY checks
+DECLARE @TableLock char(1) = 'N' 						-- Change to 'Y' to allow table-level lock during each check, thus reducing latch waits when creating DBCCCHECK database snapshots.
+DECLARE @OlaHallengrenDBName sysname = DB_NAME() 		-- This script must run within the context of the database where Ola's maintenance solution was installed
 
 DECLARE @DBName sysname, @ObjNameFull nvarchar(4000), @ObjNameLean sysname, @SchName sysname
 DECLARE @CheckTime datetime, @LastCheckDate datetime, @ObjType sysname
@@ -31,7 +33,7 @@ CREATE TABLE #Objects
 	SchemaName sysname,
 	TableName sysname,
 	ObjType sysname,
-	UsedPages int,
+	UsedPages bigint,
 	LastCheck datetime,
 	FullTableName AS (QUOTENAME(DBName) + N'.' + QUOTENAME(SchemaName) + '.' + QUOTENAME(TableName))
 );
@@ -125,7 +127,9 @@ BEGIN
 		@CheckCommands = 'CHECKTABLE',
 		@Objects = @ObjNameFull,
 		@Execute = 'Y',
-		@LogToTable = 'Y'
+		@LogToTable = 'Y',
+		@PhysicalOnly = @PhysicalOnly,
+		@TabLock = @TableLock
 
 END
 
