@@ -9,9 +9,11 @@ The script ignores the following functions:
 - Self-referencing functions.
 - Functions that contain code that uses sp_executesql or OLE Automation procedures.
 - Functions in schemas "sys" and "tSQLt".
+- Functions that use OPENROWSET or OPENQUERY
 - Functions dependent on synonyms (can be disabled by setting @IgnoreFunctionsDependentOnSynonyms to 0)
 - Functions that have constraints dependent on them (can be disabled by setting @IgnoreFunctionsWithConstraintDependencies to 0)
 - Functions dependent on linked servers (can be disabled by setting @IgnoreFunctionsDependentOnLinkedServers to 0)
+- Functions dependent on objects in other databases (can be disabled by setting @IgnoreFunctionsWithCrossDatabaseDependencies to 0)
 - Functions referencing functions fitting any of the above criteria (recursive).
 
 Instructions:
@@ -33,6 +35,9 @@ DECLARE
 	,@IgnoreFunctionsDependentOnSynonyms BIT = 1 -- optionally filter out functions that depend on synonyms (cannot be schemabound)
 	,@IgnoreFunctionsWithConstraintDependencies BIT = 1 -- optionally filter out functions that have constraints dependant on them (cannot be altered)
 	,@IgnoreFunctionsDependentOnLinkedServers BIT = 0 -- optionally filter out functions that possibly depend on linked servers (cannot be schemabound)
+	,@IgnoreFunctionsWithTableValuedParameters BIT = 1 -- optionally filter out functions that have table-valued parameters (cannot be schemabound)
+	,@IgnoreFunctionsWithCrossDatabaseDependencies BIT = 1 -- optionally filter out functions that depend on objects in another database (cannot be schemabound)
+	,@EnableRecursiveCheck BIT = 1 -- optionally perform recursive exclusions (i.e. exclude functions that depend on excluded functions). Beware of infinite recursion here!
 
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 SET NOCOUNT ON;
@@ -56,25 +61,32 @@ SET @CMD_Template  = N'WITH Exclusions AS
 ('
 -- exclude modules invalid for schemabinding
 + N'
-SELECT d.referenced_major_id AS object_id
+SELECT d.object_id
 from sys.sql_dependencies AS d
-WHERE OBJECTPROPERTY(d.referenced_major_id, ''IsScalarFunction'') = 1 AND (
+WHERE OBJECTPROPERTY(d.object_id, ''IsScalarFunction'') = 1 AND (
 d.referenced_major_id = d.object_id
-OR OBJECT_DEFINITION(d.referenced_major_id) LIKE N''%sp_OACreate%sp_OA%''
-OR LOWER(OBJECT_DEFINITION(d.referenced_major_id)) LIKE N''%exec%sp_executesql%''
-OR OBJECT_SCHEMA_NAME(d.referenced_major_id) IN (''tSQLt'',''sys'')
+OR OBJECT_DEFINITION(d.object_id) LIKE N''%sp_OACreate%sp_OA%''
+OR LOWER(OBJECT_DEFINITION(d.object_id)) LIKE N''%exec%sp_executesql%''
+OR LOWER(OBJECT_DEFINITION(d.object_id)) LIKE N''%OPENROWSET%''
+OR LOWER(OBJECT_DEFINITION(d.object_id)) LIKE N''%OPENQUERY%''
+OR OBJECT_SCHEMA_NAME(d.object_id) IN (''tSQLt'',''sys'')
 )
 UNION ALL
-select d.referenced_id
+select d.referencing_id
 from sys.sql_expression_dependencies AS d
-WHERE OBJECTPROPERTY(d.referenced_id, ''IsScalarFunction'') = 1 AND (
+WHERE OBJECTPROPERTY(d.referencing_id, ''IsScalarFunction'') = 1 AND (
 d.referencing_id = d.referenced_id
-OR OBJECT_DEFINITION(d.referenced_id) LIKE N''%sp_OACreate%sp_OA%''
-OR LOWER(OBJECT_DEFINITION(d.referenced_id)) LIKE N''%exec%sp_executesql%''
-OR OBJECT_SCHEMA_NAME(d.referenced_id) IN (''tSQLt'',''sys'')
-)'
+OR OBJECT_DEFINITION(d.referencing_id) LIKE N''%sp_OACreate%sp_OA%''
+OR LOWER(OBJECT_DEFINITION(d.referencing_id)) LIKE N''%exec%sp_executesql%''
+OR LOWER(OBJECT_DEFINITION(d.referencing_id)) LIKE N''%OPENROWSET%''
+OR LOWER(OBJECT_DEFINITION(d.referencing_id)) LIKE N''%OPENQUERY%''
+OR OBJECT_SCHEMA_NAME(d.referencing_id) IN (''tSQLt'',''sys'')' +
+CASE WHEN @IgnoreFunctionsWithCrossDatabaseDependencies = 1 THEN CONVERT(nvarchar(max), N'
+OR d.referenced_database_name <> DB_NAME()')
+ELSE N''
+END + N')'
 -- dependant on synonyms
-+ CASE WHEN @IgnoreFunctionsDependentOnSynonyms = 1 THEN N'
++ CASE WHEN @IgnoreFunctionsDependentOnSynonyms = 1 THEN CONVERT(nvarchar(max), N'
 UNION ALL
 select d.object_id
 from sys.sql_dependencies AS d
@@ -82,11 +94,11 @@ INNER JOIN sys.synonyms AS syn ON d.referenced_major_id = syn.object_id
 UNION ALL
 select d.referencing_id
 from sys.sql_expression_dependencies AS d
-INNER JOIN sys.synonyms AS syn ON d.referenced_id = syn.object_id'
+INNER JOIN sys.synonyms AS syn ON d.referenced_id = syn.object_id')
 ELSE N''
 END
 -- has constraint dependencies
-+ CASE WHEN @IgnoreFunctionsWithConstraintDependencies = 1 THEN N'
++ CASE WHEN @IgnoreFunctionsWithConstraintDependencies = 1 THEN CONVERT(nvarchar(max), N'
 UNION ALL
 select d.referenced_major_id
 from sys.sql_dependencies AS d
@@ -96,11 +108,21 @@ UNION ALL
 select d.referenced_id
 from sys.sql_expression_dependencies AS d
 INNER JOIN sys.sysconstraints AS con ON d.referencing_id = con.constid
-WHERE OBJECTPROPERTY(d.referenced_id, ''IsScalarFunction'') = 1'
+WHERE OBJECTPROPERTY(d.referenced_id, ''IsScalarFunction'') = 1')
+ELSE N''
+END
+-- Has table-valued parameters
++ CASE WHEN @IgnoreFunctionsWithTableValuedParameters = 1 THEN CONVERT(nvarchar(max), N'
+UNION ALL
+SELECT p.object_id
+FROM sys.parameters AS p
+INNER JOIN sys.types AS t ON p.user_type_id = t.user_type_id AND p.system_type_id = t.system_type_id
+WHERE t.is_table_type = 1
+')
 ELSE N''
 END
 -- Recursive depdendencies
-+ N'
++ CONVERT(nvarchar(max), N'
 ), ExclusionTree1 AS
 (
 select d.object_id
@@ -114,10 +136,9 @@ from sys.sql_dependencies AS d
 INNER JOIN ExclusionTree1 AS Tree ON d.referenced_major_id = Tree.object_id
 WHERE OBJECTPROPERTY(d.referenced_major_id, ''IsScalarFunction'') = 1
 AND d.referenced_major_id <> d.object_id
-)'
+)')
 -- Recursive expression-based dependencies
-/*
-+ N'
++ CONVERT(nvarchar(max), N'
 , ExclusionTree2 AS
 (
 select d.referencing_id AS object_id
@@ -129,8 +150,8 @@ select d.referencing_id
 from sys.sql_expression_dependencies AS d
 INNER JOIN ExclusionTree2 AS Tree ON d.referenced_id = Tree.object_id
 WHERE d.referencing_id <> d.referenced_id
-)'*/
-+ N'
+)')
++ CONVERT(nvarchar(max), N'
 SELECT DB_NAME(), OBJECT_SCHEMA_NAME(OB.id), OB.name, MO.[definition]
 , HasDependencies = CASE WHEN EXISTS
 (
@@ -173,11 +194,17 @@ AND OB.type = ''FN''
 AND MO.is_schema_bound = 0
 WHERE MO.definition NOT LIKE N''%sp_OACreate%sp_OA%''
 AND LOWER(MO.definition) NOT LIKE N''%exec%sp_executesql%''
+AND LOWER(MO.definition) NOT LIKE N''%OPENROWSET%''
+AND LOWER(MO.definition) NOT LIKE N''%OPENQUERY%''
 AND OB.name NOT IN (''fn_diagramobjects'')
 AND OBJECT_SCHEMA_NAME(OB.id) NOT IN (''tSQLt'',''sys'')
 AND OB.id NOT IN (select object_id FROM Exclusions)
-AND OB.id NOT IN (select object_id FROM ExclusionTree1)
-OPTION(MAXRECURSION 100)'
+AND OB.id NOT IN (select object_id FROM ExclusionTree1)'
++ CASE WHEN @EnableRecursiveCheck = 1 THEN CONVERT(nvarchar(max), N'
+AND OB.id NOT IN (select object_id FROM ExclusionTree2)')
+ELSE N''
+END + N'
+OPTION(MAXRECURSION 1000)')
 
 IF CONVERT(int, SERVERPROPERTY('EngineEdition')) = 5 -- Azure SQL DB
 BEGIN
