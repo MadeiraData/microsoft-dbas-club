@@ -27,3 +27,18 @@ ORDER BY
 	ReferencedSchemaName	ASC ,
 	ReferencedObjectName	ASC;
 GO
+
+-- Get all dependencies
+
+SELECT
+    ReferencedObject	= ISNULL(QUOTENAME(Dependencies.referenced_server_name) + '.', '') + ISNULL(QUOTENAME(Dependencies.referenced_database_name) + '.', '') + ISNULL(QUOTENAME(Dependencies.referenced_schema_name) + '.','') + QUOTENAME(Dependencies.referenced_entity_name) ,
+	ReferencingObject = QUOTENAME(DB_NAME()) + '.' + QUOTENAME(OBJECT_SCHEMA_NAME(Dependencies.referencing_id)) + '.' + QUOTENAME(OBJECT_NAME(Dependencies.referencing_id)) ,
+	ReferencingClass = Dependencies.referencing_class_desc
+FROM
+	sys.sql_expression_dependencies AS Dependencies
+WHERE
+	Dependencies.referenced_entity_name NOT IN ('sysdiagrams','dtproperties')
+ORDER BY
+    ReferencedObject	ASC ,
+	ReferencingObject	ASC;
+GO
