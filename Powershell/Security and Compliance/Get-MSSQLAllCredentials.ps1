@@ -283,4 +283,5 @@ finally
 {	if ($SQLCnn -ne $null) {$SQLCnn.Dispose()}}}
 
 #--------------------------#
-#Export-ModuleMember -Function Get-MSSQLAllCredentials -ErrorAction SilentlyContinue | Out-Null;
+#Export-ModuleMember -Function Get-MSSQLAllCredentials -ErrorAction SilentlyContinue | Out-Null; #relevant only if saved as psm1
+#Get-MSSQLAllCredentials # example execution
