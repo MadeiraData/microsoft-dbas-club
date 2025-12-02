@@ -4,13 +4,17 @@ Description:	Display information about database files for all databases
 Scope:			Instance
 Author:			Guy Glantser
 Created:		10/09/2020
-Last Updated:	08/03/2025
+Last Updated:		02/12/2025
 Notes:			Use this information to plan a maintenance plan for managing the size of the databases in the instance
 
 =========================================================================================================================*/
+DECLARE
+	@FilterByDrive nvarchar(4000) = NULL -- 'C:\' -- optionally add filtering for a specific disk drive. Otherwise, set NULL to see all.
+
+
 
 IF OBJECT_ID('tempdb..#DatabaseFiles') IS NOT NULL DROP TABLE #DatabaseFiles;
-GO
+
 SET NOCOUNT ON;
 
 CREATE TABLE
@@ -46,7 +50,7 @@ CREATE TABLE
 	AverageEventDuration_MS				DECIMAL(19,2)	NULL ,
 	AverageFileGrowthSize_MB			DECIMAL(19,2)	NULL
 );
-GO
+
 
 
 DECLARE
@@ -219,7 +223,7 @@ END;
 CLOSE Databases;
 
 DEALLOCATE Databases;
-GO
+
 
 
 DECLARE
@@ -283,7 +287,7 @@ ON
 	DatabaseFiles.DatabaseName = DatabaseFileAutoGrowthStats.DatabaseName
 AND
 	DatabaseFiles.FileLogicalName = DatabaseFileAutoGrowthStats.FileLogicalName
-GO
+
 
 
 SELECT
@@ -319,14 +323,14 @@ SELECT
 FROM
 	#DatabaseFiles
 WHERE
-	VolumeName = N'C:\'
+	@FilterByDrive IS NULL OR VolumeName LIKE @FilterByDrive
 ORDER BY
 	DatabaseId	ASC ,
 	FilegroupId	ASC ,
 	FileId		ASC;
-GO
+
 
 
 DROP TABLE
 	#DatabaseFiles;
-GO
+
