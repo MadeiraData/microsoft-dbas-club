@@ -17,8 +17,8 @@ SET @base_tracefilename = left( @curr_tracefilename,len(@curr_tracefilename) - @
 SELECT
 ServerName,
 EventTime = StartTime,
-ActionClass = CASE WHEN tc.name = 'Objects' THEN 'DDL' ELSE tc.name END,
-ActionType = CASE te.Name WHEN 'Object:Created' THEN 'CREATE' WHEN 'Object:Altered' THEN 'ALTER' WHEN 'Object:Deleted' THEN 'DROP' ELSE te.Name END,
+ActionClass = CASE WHEN TC.name = 'Objects' THEN 'DDL' ELSE TC.name END,
+ActionType = CASE TE.Name WHEN 'Object:Created' THEN 'CREATE' WHEN 'Object:Altered' THEN 'ALTER' WHEN 'Object:Deleted' THEN 'DROP' ELSE TE.Name END,
 DatabaseName,
 DatabaseID,
 ObjectName = ISNULL(OBJECT_NAME(ObjectID, DatabaseID), ObjectName),
@@ -27,7 +27,7 @@ ObjectID,
 ObjectID2,
 IndexID,
 ObjectType =
-CASE t.ObjectType
+CASE T.ObjectType
 WHEN 8259 THEN 'Check Constraint'
 WHEN 8260 THEN 'Default (constraint or standalone)'
 WHEN 8262 THEN 'Foreign-key Constraint'
@@ -102,13 +102,13 @@ WHEN 22601 THEN 'Index'
 WHEN 22604 THEN 'Certificate Login'
 WHEN 22611 THEN 'XMLSchema'
 WHEN 22868 THEN 'Type'
-ELSE 'Unknown Type (' + CONVERT(varchar,t.ObjectType) + ')'
+ELSE 'Unknown Type (' + CONVERT(varchar,T.ObjectType) + ')'
 END,
 HostName,
 ApplicationName,
 LoginName
 --,t.*
-FROM ::fn_trace_gettable( @base_tracefilename, default ) t
+FROM ::fn_trace_gettable( @base_tracefilename, default ) T
 INNER JOIN sys.trace_events TE 
 ON T.EventClass = TE.trace_event_id 
 INNER JOIN sys.trace_categories TC
@@ -117,15 +117,15 @@ LEFT JOIN sys.trace_subclass_values STE
 ON T.EventSubClass = STE.subclass_value 
 AND T.EventClass = STE.trace_event_id
 WHERE DB_NAme(DatabaseID) <> 'tempdb' -- ignore temporary objects
-AND t.ApplicationName <> 'SQLServerCEIP' -- ignore client experience telemetry
+AND T.ApplicationName <> 'SQLServerCEIP' -- ignore client experience telemetry
 AND STE.subclass_name NOT IN ('Begin','Rollback')
-AND t.ObjectType NOT IN (
+AND T.ObjectType NOT IN (
 	  21587	-- Statistics
 	--, 8277	-- User Defined Table
 	)
 AND TE.trace_event_id IN (
 	 46,164,47	-- DDL
 	)
-AND (@MinutesToCheckBack IS NULL OR t.StartTime >= DATEADD(minute, -@MinutesToCheckBack, GETDATE()))
+AND (@MinutesToCheckBack IS NULL OR T.StartTime >= DATEADD(minute, -@MinutesToCheckBack, GETDATE()))
  
 END
