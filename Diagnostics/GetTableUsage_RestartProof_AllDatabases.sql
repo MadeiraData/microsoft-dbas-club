@@ -90,7 +90,7 @@ BEGIN
 	WHILE @@FETCH_STATUS = 0  
 
 	BEGIN
-		SET @DynamicSQL += 
+		SET @DynamicSQL = 
 		N'
 		USE '+QUOTENAME(@CurrentDB)+N'; 
 
