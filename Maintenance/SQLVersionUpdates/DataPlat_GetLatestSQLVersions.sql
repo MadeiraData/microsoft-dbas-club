@@ -83,10 +83,10 @@ SELECT b.[Name] AS VersionName
 --, b.NextBaseVersionRowID
 , sp.SP AS LatestSP
 , cu.CU AS LatestCU
-, ver.KB AS LatestKB, ver.Version AS LatestKBVersion
-, LatestMajorVersion = PARSENAME(ver.Version,3)
-, LatestMinorVersion = PARSENAME(ver.Version,2)
-, LatestBuildVersion = PARSENAME(ver.Version,1)
+, ver.KB AS LatestKB, ISNULL(ver.Version, lastver.Version) AS LatestKBVersion
+, LatestMajorVersion = PARSENAME(ISNULL(ver.Version, lastver.Version),3)
+, LatestMinorVersion = PARSENAME(ISNULL(ver.Version, lastver.Version),2)
+, LatestBuildVersion = PARSENAME(ISNULL(ver.Version, lastver.Version),1)
 , LatestVersionUrl = 'https://support.microsoft.com/en-us/help/' + ver.KB
 FROM BaseVersions AS b
 OUTER APPLY
@@ -116,6 +116,14 @@ OUTER APPLY
 	AND s.KB IS NOT NULL
 	ORDER BY s.rowID DESC
 ) AS ver
+OUTER APPLY
+(
+	SELECT TOP 1 *
+	FROM #data AS s
+	WHERE s.rowID > b.rowID
+	AND (s.rowID < b.NextBaseVersionRowID OR b.NextBaseVersionRowID IS NULL)
+	ORDER BY s.rowID DESC
+) AS lastver
 )
 --SELECT @LastUpdated AS LastUpdated, * FROM LatestVersions
 MERGE INTO [dbo].[SQLVersions] as trg
