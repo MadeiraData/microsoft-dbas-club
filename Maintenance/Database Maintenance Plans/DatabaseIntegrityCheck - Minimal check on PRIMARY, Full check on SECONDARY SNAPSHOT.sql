@@ -68,7 +68,7 @@ BEGIN
 	
 	IF DB_ID(@SnapshotName) IS NOT NULL
 	BEGIN
-		IF EXISTS (SELECT NULL FROM sys.databases WHERE [name] = @SnapshotName AND source_database IS NOT NULL)
+		IF EXISTS (SELECT NULL FROM sys.databases WHERE [name] = @SnapshotName AND source_database_id IS NOT NULL)
 		BEGIN
 			RAISERROR(N'Existing snapshot detected: %s',0,1,@SnapshotName) WITH NOWAIT;
 			SET @CMD = N'DROP DATABASE ' + QUOTENAME(@SnapshotName);
