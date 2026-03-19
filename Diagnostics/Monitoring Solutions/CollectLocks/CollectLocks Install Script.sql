@@ -145,7 +145,45 @@ BEGIN
 	OPTION (MAXRECURSION 0)
 	
 	INSERT INTO dbo.Locks
-	SELECT DISTINCT blocked.*,blocking.program_name AS [blocking_program_name],blocked_text.text AS blocked_text, blocking_text.text AS [blocking_text],@lockDate
+	([spid], [kpid], [blocked], [waittype], [waittime], [lastwaittype], [waitresource], [dbid], [uid], [cpu], [physical_io], [memusage], [login_time]
+	, [last_batch], [ecid], [open_tran], [status], [sid], [hostname], [program_name], [hostprocess], [cmd], [nt_domain], [nt_username], [net_address], [net_library], [loginame], [context_info], [sql_handle], [stmt_start], [stmt_end], [request_id], [blocking_program_name], [blocked_text], [blocking_text], [lock_date])
+	SELECT DISTINCT
+	blocked.[spid],
+	blocked.[kpid],
+	blocked.[blocked],
+	blocked.[waittype],
+	blocked.[waittime],
+	blocked.[lastwaittype],
+	blocked.[waitresource],
+	blocked.[dbid],
+	blocked.[uid],
+	blocked.[cpu],
+	blocked.[physical_io],
+	blocked.[memusage],
+	blocked.[login_time],
+	blocked.[last_batch],
+	blocked.[ecid],
+	blocked.[open_tran],
+	blocked.[status],
+	blocked.[sid],
+	blocked.[hostname],
+	blocked.[program_name],
+	blocked.[hostprocess],
+	blocked.[cmd],
+	blocked.[nt_domain],
+	blocked.[nt_username],
+	blocked.[net_address],
+	blocked.[net_library],
+	blocked.[loginame],
+	blocked.[context_info],
+	blocked.[sql_handle],
+	blocked.[stmt_start],
+	blocked.[stmt_end],
+	blocked.[request_id],
+	blocking.program_name AS [blocking_program_name],
+	blocked_text.text AS blocked_text,
+	blocking_text.text AS [blocking_text],
+	@lockDate
 	FROM sys.sysprocesses blocked
 			JOIN  sys.sysprocesses blocking
 				ON blocked.blocked = blocking.spid
