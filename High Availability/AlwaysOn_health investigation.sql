@@ -11,7 +11,7 @@ https://docs.microsoft.com/sql/database-engine/availability-groups/windows/alway
 SET NOCOUNT ON;
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 DECLARE
-	 @FromDate			datetime2(3)	= DATEADD(hh,-24,GETDATE())
+	 @FromDate			datetime2(3)	= DATEADD(hh,-24,GETUTCDATE())
 	,@ToDate			datetime2(3)	= NULL
 	,@MaxSecondsForErrorRecovery	int		= 20	-- optionally ignore various errors if these were "recovered" within the specified number of seconds
 	,@ShowRecoveryEvents		bit		= 0	-- optionally show "recovery" events as well (i.e. recovery from error states)
