@@ -6,7 +6,6 @@ GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
 /*******************************************************************************************************************
  Title:		A procedure to create Database Snapshot
  Author:	Reut Almog Talmi and Eitan Blumin @Madeira
@@ -64,7 +63,7 @@ BEGIN
 	SELECT @FilePath =
 	ISNULL(@FilePath + N',
 ', N'') + N'(NAME = ' + QUOTENAME(mf.name) + N', FILENAME = ''' + ISNULL(@DestFilePath, LEFT(physical_name, LEN(physical_name) - CHARINDEX('\', REVERSE(physical_name)) + 1))
-+ '_' + @FileSuffix + '.ss'
++ '_' + mf.name + '_' + @FileSuffix + '.ss'
 + N''')'
 	FROM sys.master_files AS mf
 	INNER JOIN sys.databases AS db ON db.database_id = mf.database_id
@@ -88,9 +87,9 @@ BEGIN
 	EXEC sp_executesql @SQLCommand
 	
 	IF DB_ID(@NewSnapshotDBName) IS NOT NULL
-		RAISERROR ('Database snapshot [%s] has been created',1,1,@NewSnapshotDBName)
+		RAISERROR ('Database snapshot [%s] has been created',0,1,@NewSnapshotDBName)
 	ELSE
-		RAISERROR ('Error trying to create database snapshot [%s]',1,1,@NewSnapshotDBName)
+		RAISERROR ('Error trying to create database snapshot [%s]',16,1,@NewSnapshotDBName)
 END
 GO
 
